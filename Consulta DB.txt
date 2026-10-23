@@ -1,4 +1,5 @@
 CREATE SCHEMA JOIN_THE_FORCE;
+GO
 
 -- NIVEL 0
 CREATE TABLE  JOIN_THE_FORCE.categoria_bicicleta (
@@ -379,6 +380,7 @@ CONSTRAINT FK_detalle_venta_producto
 -- STORED PROCEDURES PARA MIGRACION ----------------------------
 -- NIVEL 0 -----------------------------------------------------
 -- categoria_bicicleta
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_categoria_bicicleta 
 AS
 BEGIN
@@ -389,6 +391,7 @@ WHERE Categoria_Bicicleta_Categoria_Bicicleta IS NOT NULL
 END;
 
 --categoria_accesorio
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_categoria_accesorio 
 AS
 BEGIN
@@ -399,6 +402,7 @@ WHERE Categoria_Accesorios_Categoria_Accesorio IS NOT NULL
 END;
 
 --categoria_repuesto
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_categoria_repuesto 
 AS
 BEGIN
@@ -409,6 +413,7 @@ WHERE Categoria_Repuestos_Categoria_Respuesto IS NOT NULL
 END;
 
 --estado_bicicleta_alquiler
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_estado_bicicleta_alquiler 
 AS
 BEGIN
@@ -419,6 +424,7 @@ WHERE Estado_Bici_Alquiler_Estado_Bici_Alquiler IS NOT NULL
 END;
 
 --estado_alquiler
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_estado_alquiler 
 AS
 BEGIN
@@ -429,6 +435,7 @@ WHERE Estado_Alquiler_Estado_Alquiler IS NOT NULL
 END;
 
 --estado_reparacion
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_estado_reparacion 
 AS
 BEGIN
@@ -439,6 +446,7 @@ WHERE Estado_Reparacion_Estado_Reparacion IS NOT NULL
 END;
 
 --provincia
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_provincia 
 AS
 BEGIN
@@ -457,6 +465,7 @@ SELECT Proveedor_Provincia FROM GD2C_2026.gd_esquema.Maestra
 END;
 
 --marca
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_marca 
 AS
 BEGIN
@@ -467,6 +476,7 @@ WHERE Marca_Marca IS NOT NULL
 END;
 
 --forma_pago
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_forma_pago 
 AS
 BEGIN
@@ -477,6 +487,7 @@ WHERE Forma_Pago_Forma_Pago IS NOT NULL
 END;
 
 --producto
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_producto 
 AS
 BEGIN
@@ -492,6 +503,7 @@ END;
 
 -- NIVEL 1 -----------------------------------------------------
 -- modelo
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_modelo 
 AS
 BEGIN
@@ -508,6 +520,7 @@ WHERE Modelo_Bicicleta_Modelo_Bicicleta IS NOT NULL;
 END;
 
 --localidad
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_localidad 
 AS
 BEGIN
@@ -526,6 +539,7 @@ FROM (
 END;
 
 --producto_accesorio
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_producto_accesorio 
 AS
 BEGIN
@@ -542,6 +556,7 @@ WHERE Producto_Cod_Producto IS NOT NULL
 END;
 
 --repuesto
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_repuesto
 AS
 BEGIN
@@ -558,6 +573,7 @@ END;
 
 -- NIVEL 2 -----------------------------------------------------
 --producto_bicicleta
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_producto_bicicleta 
 AS
 BEGIN
@@ -572,6 +588,7 @@ WHERE Producto_Cod_Producto IS NOT NULL
 END;
 
 --proveedor
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_proveedor 
 AS
 BEGIN
@@ -600,6 +617,7 @@ FROM gd_esquema.Maestra m
 END;
 
 -- local
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_local 
 AS
 BEGIN
@@ -626,6 +644,7 @@ FROM gd_esquema.Maestra m
 END;
 
 -- cliente
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_cliente 
 AS
 BEGIN
@@ -659,6 +678,7 @@ END;
 
 -- NIVEL 3 ------------------------------------------
 -- empleado
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_empleado
 AS
 BEGIN
@@ -699,6 +719,7 @@ WHERE m.Empleado_Dni_Empleado IS NOT NULL AND m.Alquiler_Nro_Alquiler IS NULL AN
 END;
 
 -- bicicleta alquiler
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_bicicleta_alquiler 
 AS
 BEGIN
@@ -718,6 +739,7 @@ END;
 
 -- NIVEL 4 ---------------------------------------------
 -- venta
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_venta 
 AS
 BEGIN
@@ -742,6 +764,7 @@ SELECT DISTINCT
 END;
 
 -- alquiler
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_alquiler 
 AS
 BEGIN
@@ -772,7 +795,8 @@ SELECT DISTINCT
 END;
 
 -- compra
-ALTER PROCEDURE JOIN_THE_FORCE.crear_compra 
+GO
+CREATE PROCEDURE JOIN_THE_FORCE.crear_compra 
 AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.compra(nro_compra, nro_proveedor, nro_empleado, fecha_compra, importe_total)
@@ -793,6 +817,7 @@ WHERE m.Compra_Nro_Compra IS NOT NULL
 END;
 
 --reparacion
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_reparacion
 AS
 BEGIN
@@ -829,6 +854,7 @@ END;
 
 -- NIVEL 5 ---------------------------------------------
 -- detalle_compra
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_compra 
 AS
 BEGIN
@@ -849,6 +875,7 @@ SELECT DISTINCT
 END;
 
 -- detalle_reparacion
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_reparacion 
 AS
 BEGIN
@@ -869,6 +896,7 @@ SELECT
 END;
 
 -- detalle_venta
+GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_venta 
 AS
 BEGIN
@@ -888,6 +916,7 @@ SELECT
         ON  p.cod_producto      = m.Producto_Cod_Producto
     WHERE m.Venta_Nro_Venta IS NOT NULL
 END;
+GO
 
 -- EXECUTE SP
 EXECUTE JOIN_THE_FORCE.crear_categoria_bicicleta;
