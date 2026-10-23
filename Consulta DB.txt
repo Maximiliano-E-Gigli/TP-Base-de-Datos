@@ -1,5 +1,5 @@
 CREATE SCHEMA JOIN_THE_FORCE;
---------------- CREACION DE TABLAS ---------------
+
 -- NIVEL 0
 CREATE TABLE  JOIN_THE_FORCE.categoria_bicicleta (
 	 categoria_bici		VARCHAR(255) PRIMARY KEY
@@ -63,9 +63,9 @@ REFERENCES JOIN_THE_FORCE.categoria_bicicleta(categoria_bici)
 );
 
 CREATE TABLE  JOIN_THE_FORCE.localidad (
-	nro_localidad		INT IDENTINTY(1,1) PRIMARY KEY,
-	localidad 		VARCHAR(255),
-	provincia		VARCHAR(255) NOT NULL,
+	nro_localidad		INT IDENTITY(1,1) PRIMARY KEY,
+	localidad 			VARCHAR(255),
+	provincia			VARCHAR(255) NOT NULL,
 	
 	CONSTRAINT FK_localidad_provincia
 		FOREIGN KEY (provincia)
@@ -121,72 +121,73 @@ CREATE TABLE  JOIN_THE_FORCE.producto_bicicleta (
 );
 
 CREATE TABLE  JOIN_THE_FORCE.proveedor (
-	nro_proveedor			INT IDENTITY(1,1) PRIMARY KEY
-cuit_proveedor		VARCHAR(255),
+	nro_proveedor			INT IDENTITY(1,1) PRIMARY KEY,
+	cuit_proveedor			VARCHAR(255),
 	razon_social			VARCHAR(255),
-	telefono			VARCHAR(255),
-	email				VARCHAR(255),
-	direccion			VARCHAR(255),
-	localidad			VARCHAR(255) NOT NULL,
+	telefono				VARCHAR(255),
+	email					VARCHAR(255),
+	direccion				VARCHAR(255),
+	nro_localidad			INT NOT NULL,
 
 	CONSTRAINT FK_proveedor_localidad
-		FOREIGN KEY (localidad)
-		REFERENCES JOIN_THE_FORCE.localidad(localidad)
+		FOREIGN KEY (nro_localidad)
+		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad)
 );
 
 
 CREATE TABLE JOIN_THE_FORCE.local (
 	nro_local			INT IDENTITY(1,1) PRIMARY KEY,
-	nombre			VARCHAR(255),			
+	nombre				VARCHAR(255),			
 	telefono			VARCHAR(255),
 	email				VARCHAR(255),
 	direccion			VARCHAR(255),
-	localidad			VARCHAR(255) NOT NULL,
+	nro_localidad		INT NOT NULL,
 
 	CONSTRAINT FK_local_localidad
-		FOREIGN KEY (localidad)
-		REFERENCES JOIN_THE_FORCE.localidad(localidad)
+		FOREIGN KEY (nro_localidad)
+		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad)
 );
 
-CREATE TABLE JOIN_THE_FORCE.cliente (
-    nro_cliente         	INT IDENTITY(1,1) PRIMARY KEY,
-    nombre              	VARCHAR(255),
-    apellido            	VARCHAR(255),
-    dni                 	VARCHAR(255),
-    telefono            	VARCHAR(255),
-    email               	VARCHAR(255),
-    direccion           	VARCHAR(255),
-    fecha_nacimiento    DATETIME2(6),
-    nro_localidad       	INT NOT NULL,
+CREATE TABLE  JOIN_THE_FORCE.cliente(
+	nro_cliente			INT IDENTITY(1,1) PRIMARY KEY,
+	nombre				VARCHAR(255),
+	apellido			VARCHAR(255),
+	dni					VARCHAR(255),
+	telefono			VARCHAR(255),
+	email				VARCHAR(255),
+	direccion			VARCHAR(255),
+	fecha_nacimiento	DATETIME2(6),
+	nro_localidad		INT NOT NULL,
 
-    CONSTRAINT FK_cliente_localidad
-        FOREIGN KEY (nro_localidad)
-        REFERENCES JOIN_THE_FORCE.localidad (nro_localidad)
+	CONSTRAINT FK_cliente_localidad
+		FOREIGN KEY (nro_localidad)
+		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad),
 );
 
 -- NIVEL 3
 
 CREATE TABLE  JOIN_THE_FORCE.empleado (
 	nro_empleado			INT IDENTITY(1,1) PRIMARY KEY,
-	nro_local			INT NOT NULL,
-	nombre			VARCHAR(255),
-	apellido			VARCHAR(255),
-	dni				VARCHAR(255),
-	telefono			VARCHAR(255),
-	email				VARCHAR(255),
-	domicilio			VARCHAR(255),
+	nro_local				INT NOT NULL,
+	nombre					VARCHAR(255),
+	apellido				VARCHAR(255),
+	dni						VARCHAR(255),
+	telefono				VARCHAR(255),
+	email					VARCHAR(255),
+	domicilio				VARCHAR(255),
 	fecha_nacimiento		DATETIME2(6),
-	puesto				VARCHAR(255),
+	puesto					VARCHAR(255),
 	fecha_ingreso			DATETIME2(6),
-	localidad			VARCHAR(255) NOT NULL,
+	nro_localidad			INT NOT NULL,
 
 	CONSTRAINT FK_empleado_local
 		FOREIGN KEY (nro_local)
 		REFERENCES JOIN_THE_FORCE.local(nro_local),
 
+
 	CONSTRAINT FK_empleado_localidad
-		FOREIGN KEY (localidad)
-		REFERENCES JOIN_THE_FORCE.localidad(localidad),
+		FOREIGN KEY (nro_localidad)
+		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad),
 );
 
 CREATE TABLE  JOIN_THE_FORCE.bicicleta_alquiler(
@@ -214,14 +215,14 @@ CREATE TABLE  JOIN_THE_FORCE.bicicleta_alquiler(
 -- NIVEL 4
 CREATE TABLE  JOIN_THE_FORCE.compra (
 	nro_compra			INT PRIMARY KEY,
-	cuit_proveedor		VARCHAR(255) NOT NULL,
+	nro_proveedor			INT NOT NULL,
 	nro_empleado			INT NOT NULL,
 	fecha_compra			DATETIME2(6),
 	importe_total			NUMERIC(38,2),
 
 	CONSTRAINT FK_compra_proveedor
-		FOREIGN KEY (cuit_proveedor)
-		REFERENCES JOIN_THE_FORCE.proveedor(cuit_proveedor),
+		FOREIGN KEY (nro_proveedor)
+		REFERENCES JOIN_THE_FORCE.proveedor(nro_proveedor),
 
 	CONSTRAINT FK_compra_empleado
 		FOREIGN KEY (nro_empleado)
@@ -335,7 +336,7 @@ CONSTRAINT FK_detalle_compra_producto
 );
 
 
-CREATE TABLE  JOIN_THE_FORCE.detalle_repuesto (
+CREATE TABLE  JOIN_THE_FORCE.detalle_reparacion (
 	cod_repuesto			VARCHAR(255) NOT NULL,
 	nro_reparacion		INT NOT NULL,
 	cantidad			INT,
@@ -375,10 +376,9 @@ CONSTRAINT FK_detalle_venta_producto
 	
 );
 
---------------- CREACION DE PROCEDIMIENTOS ---------------
-
--- Nivel 0
---categoria_bicicleta
+-- STORED PROCEDURES PARA MIGRACION ----------------------------
+-- NIVEL 0 -----------------------------------------------------
+-- categoria_bicicleta
 CREATE PROCEDURE JOIN_THE_FORCE.crear_categoria_bicicleta 
 AS
 BEGIN
@@ -386,7 +386,7 @@ INSERT INTO JOIN_THE_FORCE.categoria_bicicleta(categoria_bici)
 SELECT DISTINCT (Categoria_Bicicleta_Categoria_Bicicleta)
 FROM gd_esquema.Maestra
 WHERE Categoria_Bicicleta_Categoria_Bicicleta IS NOT NULL
-END 
+END;
 
 --categoria_accesorio
 CREATE PROCEDURE JOIN_THE_FORCE.crear_categoria_accesorio 
@@ -396,7 +396,7 @@ INSERT INTO JOIN_THE_FORCE.categoria_accesorio(categoria_accesorio )
 SELECT DISTINCT(Categoria_Accesorios_Categoria_Accesorio)
 FROM gd_esquema.Maestra
 WHERE Categoria_Accesorios_Categoria_Accesorio IS NOT NULL
-END
+END;
 
 --categoria_repuesto
 CREATE PROCEDURE JOIN_THE_FORCE.crear_categoria_repuesto 
@@ -406,7 +406,7 @@ INSERT INTO JOIN_THE_FORCE.categoria_repuesto(categoria_repuesto )
 SELECT DISTINCT(Categoria_Repuestos_Categoria_Respuesto)
 FROM gd_esquema.Maestra
 WHERE Categoria_Repuestos_Categoria_Respuesto IS NOT NULL
-END
+END;
 
 --estado_bicicleta_alquiler
 CREATE PROCEDURE JOIN_THE_FORCE.crear_estado_bicicleta_alquiler 
@@ -416,7 +416,7 @@ INSERT INTO JOIN_THE_FORCE.estado_bicicleta_alquiler(estado_bici_alquiler )
 SELECT DISTINCT(Estado_Bici_Alquiler_Estado_Bici_Alquiler)
 FROM gd_esquema.Maestra
 WHERE Estado_Bici_Alquiler_Estado_Bici_Alquiler IS NOT NULL
-END
+END;
 
 --estado_alquiler
 CREATE PROCEDURE JOIN_THE_FORCE.crear_estado_alquiler 
@@ -426,18 +426,17 @@ INSERT INTO JOIN_THE_FORCE.estado_alquiler(estado_alquiler )
 SELECT DISTINCT(Estado_Alquiler_Estado_Alquiler)
 FROM gd_esquema.Maestra
 WHERE Estado_Alquiler_Estado_Alquiler IS NOT NULL
-END
-
-
+END;
 
 --estado_reparacion
-CREATE PROCEDURE JOIN_THE_FORCE.crear_estado_reparacion AS
+CREATE PROCEDURE JOIN_THE_FORCE.crear_estado_reparacion 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.estado_reparacion(estado_reparacion )
 SELECT DISTINCT(Estado_Reparacion_Estado_Reparacion)
 FROM gd_esquema.Maestra
 WHERE Estado_Reparacion_Estado_Reparacion IS NOT NULL
-END
+END;
 
 --provincia
 CREATE PROCEDURE JOIN_THE_FORCE.crear_provincia 
@@ -452,11 +451,10 @@ SELECT Cliente_Provincia FROM GD2C_2026.gd_esquema.Maestra
 UNION 
 SELECT Local_Provincia FROM GD2C_2026.gd_esquema.Maestra
 UNION 
-SELECT Proveedor_Provincia FROM GD2C_2026.gd_esquema.Maestra) 
- p
+SELECT Proveedor_Provincia FROM GD2C_2026.gd_esquema.Maestra
+) p
 	WHERE p.Empleado_Provincia IS NOT NULL;
 END;
-
 
 --marca
 CREATE PROCEDURE JOIN_THE_FORCE.crear_marca 
@@ -466,34 +464,36 @@ INSERT INTO JOIN_THE_FORCE.marca(marca)
 SELECT DISTINCT(Marca_Marca)
 FROM gd_esquema.Maestra
 WHERE Marca_Marca IS NOT NULL
-END
+END;
 
 --forma_pago
-CREATE PROCEDURE JOIN_THE_FORCE.crear_forma_pago AS
+CREATE PROCEDURE JOIN_THE_FORCE.crear_forma_pago 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.forma_pago(forma_pago)
 SELECT DISTINCT(Forma_Pago_Forma_Pago)
 FROM gd_esquema.Maestra
 WHERE Forma_Pago_Forma_Pago IS NOT NULL
-END
+END;
 
 --producto
-CREATE PROCEDURE JOIN_THE_FORCE.crear_producto AS
+CREATE PROCEDURE JOIN_THE_FORCE.crear_producto 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.producto(cod_producto, nombre_producto, descripcion_producto, precio_venta)
 SELECT DISTINCT 
-Producto_Cod_Producto, 
-Producto_Nombre_Producto, 
-Producto_Descripcion_Producto, 
-Producto_Precio_Venta_Producto
+	Producto_Cod_Producto, 
+	Producto_Nombre_Producto, 
+	Producto_Descripcion_Producto, 
+	Producto_Precio_Venta_Producto
 FROM gd_esquema.Maestra 
 WHERE Producto_Cod_Producto IS NOT NULL; 
 END;
 
-
---Nivel 1
---modelo
-CREATE PROCEDURE JOIN_THE_FORCE.crear_modelo AS
+-- NIVEL 1 -----------------------------------------------------
+-- modelo
+CREATE PROCEDURE JOIN_THE_FORCE.crear_modelo 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.modelo(modelo, categoria_bici, rodado, cuadro, color, marca)
 	SELECT DISTINCT
@@ -508,24 +508,26 @@ WHERE Modelo_Bicicleta_Modelo_Bicicleta IS NOT NULL;
 END;
 
 --localidad
-CREATE PROCEDURE JOIN_THE_FORCE.crear_localidad AS
+CREATE PROCEDURE JOIN_THE_FORCE.crear_localidad 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.localidad(localidad, provincia)
 SELECT l.localidad, l.provincia
 FROM (
-SELECT Cliente_Localidad localidad, Cliente_Provincia provincia FROM GD2C_2026.gd_esquema.Maestra
-UNION
-SELECT Empleado_Localidad, Empleado_Provincia FROM GD2C_2026.gd_esquema.Maestra 
-UNION 
-SELECT Local_Localidad, Local_Provincia FROM GD2C_2026.gd_esquema.Maestra
-UNION 
-SELECT Proveedor_Localidad, Proveedor_Provincia FROM GD2C_2026.gd_esquema.Maestra) 
- l
+	SELECT Cliente_Localidad localidad, Cliente_Provincia provincia FROM GD2C_2026.gd_esquema.Maestra
+	UNION
+	SELECT Empleado_Localidad, Empleado_Provincia FROM GD2C_2026.gd_esquema.Maestra 
+	UNION 
+	SELECT Local_Localidad, Local_Provincia FROM GD2C_2026.gd_esquema.Maestra
+	UNION 
+	SELECT Proveedor_Localidad, Proveedor_Provincia FROM GD2C_2026.gd_esquema.Maestra
+) l
 	WHERE l.localidad IS NOT NULL AND l.provincia IS NOT NULL ;
 END;
 
 --producto_accesorio
-CREATE PROCEDURE JOIN_THE_FORCE.crear_producto_accesorio AS
+CREATE PROCEDURE JOIN_THE_FORCE.crear_producto_accesorio 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.producto_accesorio(cod_producto, categoria_accesorio, marca, talle, color)
 SELECT DISTINCT 
@@ -554,10 +556,10 @@ FROM gd_esquema.Maestra
 WHERE Repuesto_Cod_Repuesto IS NOT NULL
 END;
 
-
---Nivel 2
+-- NIVEL 2 -----------------------------------------------------
 --producto_bicicleta
-CREATE PROCEDURE JOIN_THE_FORCE.crear_producto_bicicleta AS
+CREATE PROCEDURE JOIN_THE_FORCE.crear_producto_bicicleta 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.producto_bicicleta(cod_producto, meses_garantia, modelo)
 SELECT DISTINCT 
@@ -597,9 +599,7 @@ FROM gd_esquema.Maestra m
 );
 END;
 
-
-
---local
+-- local
 CREATE PROCEDURE JOIN_THE_FORCE.crear_local 
 AS
 BEGIN
@@ -610,9 +610,13 @@ SELECT DISTINCT
 	m.Local_Email_Local,
 	m.Local_Direccion_Local,
 	l.nro_localidad
-FROM gd_esquema.Maestra m 
-JOIN JOIN_THE_FORCE.localidad l ON m.Local_Localidad = l.localidad
-WHERE Local_Nombre_Local IS NOT NULL AND NOT EXISTS(
+FROM gd_esquema.Maestra m
+    JOIN JOIN_THE_FORCE.provincia p
+        ON p.provincia = m.Local_Provincia
+    JOIN JOIN_THE_FORCE.localidad l
+        ON  l.localidad     = m.Local_Localidad
+        AND l.provincia = p.provincia
+    WHERE m.Local_Nombre_Local IS NOT NULL AND NOT EXISTS(
 	SELECT 1 FROM JOIN_THE_FORCE.local loc WHERE
 		loc.nombre =m.Local_Nombre_Local AND 
 		loc.telefono = m.Local_Telefono_Local AND 
@@ -621,7 +625,7 @@ WHERE Local_Nombre_Local IS NOT NULL AND NOT EXISTS(
 );
 END;
 
---cliente
+-- cliente
 CREATE PROCEDURE JOIN_THE_FORCE.crear_cliente 
 AS
 BEGIN
@@ -653,12 +657,8 @@ SELECT DISTINCT
 	);
 END;
 
-
-
-
-
---Nivel 3
---empleado
+-- NIVEL 3 ------------------------------------------
+-- empleado
 CREATE PROCEDURE JOIN_THE_FORCE.crear_empleado
 AS
 BEGIN
@@ -698,46 +698,26 @@ WHERE m.Empleado_Dni_Empleado IS NOT NULL AND m.Alquiler_Nro_Alquiler IS NULL AN
 	);
 END;
 
-
-
---bicicleta_alquiler
-CREATE PROCEDURE JOIN_THE_FORCE.crear_bicicleta_alquiler AS
+-- bicicleta alquiler
+CREATE PROCEDURE JOIN_THE_FORCE.crear_bicicleta_alquiler 
+AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.bicicleta_alquiler(nro_serie_bici_alquiler, modelo, precio_por_hora, precio_por_dia, estado_bici_alquiler, nro_local)
 SELECT DISTINCT
-	m.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler
-	m.Modelo_Bicicleta_Modelo_Bicicleta
-	m.Bicicleta_Alquiler_Precio_Bici_Alquiler_Hora
-	m.Bicicleta_Alquiler_Precio_Bici_Alquiler_dia
-	m.Estado_Alquiler
-	l.nro_local
+    m.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler,
+    m.Modelo_Bicicleta_Modelo_Bicicleta,
+    m.Bicicleta_Alquiler_Precio_Bici_Alquiler_Hora,
+    m.Bicicleta_Alquiler_Precio_Bici_Alquiler_dia,
+    m.Estado_Bici_Alquiler_Estado_Bici_Alquiler,
+    l.nro_local
 FROM gd_esquema.Maestra m
 JOIN JOIN_THE_FORCE.local l
-	ON l.nombre = m.Local_Nombre_Local
+    ON l.nombre = m.Local_Nombre_Local
 WHERE m.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler IS NOT NULL;
 END;
 
-
-
-
---Nivel 4
---compra
-CREATE PROCEDURE JOIN_THE_FORCE.crear_compra 
-AS
-BEGIN
-INSERT INTO JOIN_THE_FORCE.compra(nro_compra, nro_proveedor, fecha_compra, importe_total)
-SELECT DISTINCT
-	m.Compra_Nro_Compra,
-	p.nro_proveedor,
-	m.Compra_Fecha_Compra,
-	m.Compra_Total_Compra
-FROM gd_esquema.Maestra m
-JOIN JOIN_THE_FORCE.proveedor p
-	ON p.cuit_proveedor = m.Proveedor_Cuit_Proveedor
-WHERE m.Compra_Nro_Compra IS NOT NULL
-END;
-
---venta
+-- NIVEL 4 ---------------------------------------------
+-- venta
 CREATE PROCEDURE JOIN_THE_FORCE.crear_venta 
 AS
 BEGIN
@@ -761,8 +741,7 @@ SELECT DISTINCT
     WHERE m.Venta_Nro_Venta IS NOT NULL
 END;
 
-
---alquiler
+-- alquiler
 CREATE PROCEDURE JOIN_THE_FORCE.crear_alquiler 
 AS
 BEGIN
@@ -792,25 +771,33 @@ SELECT DISTINCT
     WHERE m.Alquiler_Nro_Alquiler IS NOT NULL
 END;
 
+-- compra
+ALTER PROCEDURE JOIN_THE_FORCE.crear_compra 
+AS
+BEGIN
+INSERT INTO JOIN_THE_FORCE.compra(nro_compra, nro_proveedor, nro_empleado, fecha_compra, importe_total)
+SELECT DISTINCT
+	m.Compra_Nro_Compra,
+	p.nro_proveedor,
+	e.nro_empleado,
+	m.Compra_Fecha_Compra,
+	m.Compra_Total_Compra
+FROM gd_esquema.Maestra m
+JOIN JOIN_THE_FORCE.proveedor p
+	ON p.cuit_proveedor = m.Proveedor_Cuit_Proveedor
+JOIN JOIN_THE_FORCE.empleado e
+        ON  e.dni      = m.Empleado_Dni_Empleado
+        AND e.nombre   = m.Empleado_Nombre_Empleado
+        AND e.apellido = m.Empleado_Apellido_Empleado
+WHERE m.Compra_Nro_Compra IS NOT NULL
+END;
+
 --reparacion
 CREATE PROCEDURE JOIN_THE_FORCE.crear_reparacion
 AS
 BEGIN
-    INSERT INTO JOIN_THE_FORCE.reparacion(
-        nro_reparacion,
-        modelo,
-        fecha_ingreso,
-        fecha_entrega_estimada,
-        fecha_entrega_real,
-        precio_mano_obra,
-        precio_repuestos,
-        precio_total,
-        nro_empleado,
-        nro_cliente,
-        diagnostico,
-        estado_reparacion,
-        nro_serie_bici_reparacion
-    )
+    INSERT INTO JOIN_THE_FORCE.reparacion(nro_reparacion, modelo, fecha_ingreso, fecha_entrega_estimada, fecha_entrega_real, precio_mano_obra, precio_repuestos,
+        precio_total, nro_empleado, nro_cliente, diagnostico, estado_reparacion, nro_serie_bici_reparacion)
     SELECT DISTINCT
         m.Reparacion_Nro_Reparacion,
         m.Modelo_Bicicleta_Modelo_Bicicleta,
@@ -827,7 +814,6 @@ BEGIN
         m.Reparacion_Numero_Serie_Bici_Reparacion
 
     FROM gd_esquema.Maestra m
-
     JOIN JOIN_THE_FORCE.cliente c
         ON c.dni = m.Cliente_Dni_Cliente
         AND c.nombre = m.Cliente_Nombre_Cliente
@@ -841,8 +827,8 @@ BEGIN
     WHERE m.Reparacion_Nro_Reparacion IS NOT NULL;
 END;
 
---Nivel 5
---detalle_compra
+-- NIVEL 5 ---------------------------------------------
+-- detalle_compra
 CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_compra 
 AS
 BEGIN
@@ -862,13 +848,13 @@ SELECT DISTINCT
     WHERE m.Compra_Nro_Compra IS NOT NULL
 END;
 
---detalle_repuesto
-CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_repuesto 
+-- detalle_reparacion
+CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_reparacion 
 AS
 BEGIN
-INSERT INTO JOIN_THE_FORCE.detalle_repuesto(cod_repuesto, nro_reparacion, cantidad, subtotal,
+INSERT INTO JOIN_THE_FORCE.detalle_reparacion(cod_repuesto, nro_reparacion, cantidad, subtotal,
 precio_unitario)
-SELECT DISTINCT
+SELECT
         repu.cod_repuesto,
         repa.nro_reparacion,
         m.Detalle_Reparacion_Cantidad_Repuesto,
@@ -882,13 +868,14 @@ SELECT DISTINCT
     WHERE m.Reparacion_Nro_Reparacion IS NOT NULL
 END;
 
---detalle_venta
+-- detalle_venta
 CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_venta 
 AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.detalle_venta(nro_venta, cod_producto, cant_producto, precio_unitario_producto,
 subtotal_producto)
-SELECT DISTINCT
+SELECT
+--- Sin DISTINCT ---
         v.nro_venta,
         p.cod_producto,
         m.Detalle_Venta_Cantidad_Prod_Venta,
@@ -901,3 +888,79 @@ SELECT DISTINCT
         ON  p.cod_producto      = m.Producto_Cod_Producto
     WHERE m.Venta_Nro_Venta IS NOT NULL
 END;
+
+-- EXECUTE SP
+EXECUTE JOIN_THE_FORCE.crear_categoria_bicicleta;
+SELECT * FROM JOIN_THE_FORCE.categoria_bicicleta;
+
+EXECUTE JOIN_THE_FORCE.crear_categoria_accesorio;
+SELECT * FROM JOIN_THE_FORCE.categoria_accesorio;
+
+EXECUTE JOIN_THE_FORCE.crear_categoria_repuesto;
+SELECT * FROM JOIN_THE_FORCE.categoria_repuesto;
+
+EXECUTE JOIN_THE_FORCE.crear_estado_bicicleta_alquiler;
+SELECT * FROM JOIN_THE_FORCE.estado_bicicleta_alquiler;
+
+EXECUTE JOIN_THE_FORCE.crear_estado_alquiler;
+SELECT * FROM JOIN_THE_FORCE.estado_alquiler;
+
+EXECUTE JOIN_THE_FORCE.crear_estado_reparacion;
+SELECT * FROM JOIN_THE_FORCE.estado_reparacion;
+
+EXECUTE JOIN_THE_FORCE.crear_provincia;
+SELECT * FROM JOIN_THE_FORCE.provincia;
+
+EXECUTE JOIN_THE_FORCE.crear_marca;
+SELECT * FROM JOIN_THE_FORCE.marca;
+
+EXECUTE JOIN_THE_FORCE.crear_forma_pago;
+SELECT * FROM JOIN_THE_FORCE.forma_pago;
+
+EXECUTE JOIN_THE_FORCE.crear_producto;
+SELECT * FROM JOIN_THE_FORCE.producto;
+
+EXECUTE JOIN_THE_FORCE.crear_modelo;
+SELECT * FROM JOIN_THE_FORCE.modelo;
+
+EXECUTE JOIN_THE_FORCE.crear_localidad;
+SELECT * FROM JOIN_THE_FORCE.localidad;
+
+EXECUTE JOIN_THE_FORCE.crear_producto_accesorio;
+SELECT * FROM JOIN_THE_FORCE.producto_accesorio;
+
+EXECUTE JOIN_THE_FORCE.crear_repuesto;
+SELECT * FROM JOIN_THE_FORCE.repuesto;
+
+EXECUTE JOIN_THE_FORCE.crear_producto_bicicleta;
+SELECT * FROM JOIN_THE_FORCE.producto_bicicleta;
+
+EXECUTE JOIN_THE_FORCE.crear_proveedor;
+SELECT * FROM JOIN_THE_FORCE.proveedor;
+
+EXECUTE JOIN_THE_FORCE.crear_local;
+SELECT * FROM JOIN_THE_FORCE.local;
+
+EXECUTE JOIN_THE_FORCE.crear_cliente;
+SELECT * FROM JOIN_THE_FORCE.cliente;
+
+EXECUTE JOIN_THE_FORCE.crear_empleado;
+SELECT * FROM JOIN_THE_FORCE.empleado;
+
+EXECUTE JOIN_THE_FORCE.crear_bicicleta_alquiler;
+SELECT * FROM JOIN_THE_FORCE.bicicleta_alquiler;
+
+EXECUTE JOIN_THE_FORCE.crear_venta;
+SELECT * FROM JOIN_THE_FORCE.venta;
+
+EXECUTE JOIN_THE_FORCE.crear_compra;
+SELECT * FROM JOIN_THE_FORCE.compra;
+
+EXECUTE JOIN_THE_FORCE.crear_reparacion;
+SELECT * FROM JOIN_THE_FORCE.reparacion;
+
+EXECUTE JOIN_THE_FORCE.crear_detalle_compra;
+SELECT * FROM JOIN_THE_FORCE.detalle_compra;
+
+EXECUTE JOIN_THE_FORCE.crear_detalle_reparacion;
+SELECT * FROM JOIN_THE_FORCE.detalle_reparacion;
