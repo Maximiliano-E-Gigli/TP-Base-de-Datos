@@ -987,12 +987,16 @@ SELECT * FROM JOIN_THE_FORCE.bicicleta_alquiler;
 EXECUTE JOIN_THE_FORCE.crear_venta;
 SELECT * FROM JOIN_THE_FORCE.venta;
 
+EXECUTE JOIN_THE_FORCE.crear_alquiler;
+SELECT * FROM JOIN_THE_FORCE.alquiler;
+
 EXECUTE JOIN_THE_FORCE.crear_compra;
 SELECT * FROM JOIN_THE_FORCE.compra;
 
 EXECUTE JOIN_THE_FORCE.crear_reparacion;
 SELECT * FROM JOIN_THE_FORCE.reparacion;
 
+--- Mucho cuidado de no repetir los execute de los detalles
 EXECUTE JOIN_THE_FORCE.crear_detalle_compra;
 SELECT * FROM JOIN_THE_FORCE.detalle_compra;
 
@@ -1001,3 +1005,24 @@ SELECT * FROM JOIN_THE_FORCE.detalle_reparacion;
 
 EXECUTE JOIN_THE_FORCE.crear_detalle_venta;
 SELECT * FROM JOIN_THE_FORCE.detalle_venta;
+
+---- Insertar los estados necesarios pero no presentes en la tabla maestra ----
+-- estado_bicicleta_alquiler -- Estaba: (Disponible) -- Faltaban: (Alquilada, De baja) 
+INSERT INTO  JOIN_THE_FORCE.estado_bicicleta_alquiler (estado_bici_alquiler)
+VALUES ('Alquilada');
+INSERT INTO  JOIN_THE_FORCE.estado_bicicleta_alquiler (estado_bici_alquiler)
+VALUES ('De baja');
+-- estado_alquiler -- Estaba: (Devuelto) -- Faltaban (Reservado, En curso, Vencido)
+INSERT INTO  JOIN_THE_FORCE.estado_alquiler (estado_alquiler)
+VALUES ('Reservado');
+INSERT INTO  JOIN_THE_FORCE.estado_alquiler (estado_alquiler)
+VALUES ('En curso');
+INSERT INTO  JOIN_THE_FORCE.estado_alquiler (estado_alquiler)
+VALUES ('Vencido');
+-- estado_reparacion -- Estaba: (Entregada) -- Faltaban: (Presupuestada, En proceso, Lista) 
+INSERT INTO  JOIN_THE_FORCE.estado_reparacion (estado_reparacion)
+VALUES ('Presupuestada');
+INSERT INTO  JOIN_THE_FORCE.estado_reparacion (estado_reparacion)
+VALUES ('En proceso');
+INSERT INTO  JOIN_THE_FORCE.estado_reparacion (estado_reparacion)
+VALUES ('Lista');
