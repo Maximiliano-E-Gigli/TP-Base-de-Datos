@@ -925,86 +925,89 @@ GO
 
 -- EXECUTE SP
 EXECUTE JOIN_THE_FORCE.crear_categoria_bicicleta;
-SELECT * FROM JOIN_THE_FORCE.categoria_bicicleta;
 
 EXECUTE JOIN_THE_FORCE.crear_categoria_accesorio;
-SELECT * FROM JOIN_THE_FORCE.categoria_accesorio;
 
 EXECUTE JOIN_THE_FORCE.crear_categoria_repuesto;
-SELECT * FROM JOIN_THE_FORCE.categoria_repuesto;
 
 EXECUTE JOIN_THE_FORCE.crear_estado_bicicleta_alquiler;
-SELECT * FROM JOIN_THE_FORCE.estado_bicicleta_alquiler;
 
 EXECUTE JOIN_THE_FORCE.crear_estado_alquiler;
-SELECT * FROM JOIN_THE_FORCE.estado_alquiler;
 
 EXECUTE JOIN_THE_FORCE.crear_estado_reparacion;
-SELECT * FROM JOIN_THE_FORCE.estado_reparacion;
 
 EXECUTE JOIN_THE_FORCE.crear_provincia;
-SELECT * FROM JOIN_THE_FORCE.provincia;
 
 EXECUTE JOIN_THE_FORCE.crear_marca;
-SELECT * FROM JOIN_THE_FORCE.marca;
 
 EXECUTE JOIN_THE_FORCE.crear_forma_pago;
-SELECT * FROM JOIN_THE_FORCE.forma_pago;
 
 EXECUTE JOIN_THE_FORCE.crear_producto;
-SELECT * FROM JOIN_THE_FORCE.producto;
 
 EXECUTE JOIN_THE_FORCE.crear_modelo;
-SELECT * FROM JOIN_THE_FORCE.modelo;
 
 EXECUTE JOIN_THE_FORCE.crear_localidad;
-SELECT * FROM JOIN_THE_FORCE.localidad;
 
 EXECUTE JOIN_THE_FORCE.crear_producto_accesorio;
-SELECT * FROM JOIN_THE_FORCE.producto_accesorio;
 
 EXECUTE JOIN_THE_FORCE.crear_repuesto;
-SELECT * FROM JOIN_THE_FORCE.repuesto;
 
 EXECUTE JOIN_THE_FORCE.crear_producto_bicicleta;
-SELECT * FROM JOIN_THE_FORCE.producto_bicicleta;
 
 EXECUTE JOIN_THE_FORCE.crear_proveedor;
-SELECT * FROM JOIN_THE_FORCE.proveedor;
 
 EXECUTE JOIN_THE_FORCE.crear_local;
-SELECT * FROM JOIN_THE_FORCE.local;
 
 EXECUTE JOIN_THE_FORCE.crear_cliente;
-SELECT * FROM JOIN_THE_FORCE.cliente;
 
 EXECUTE JOIN_THE_FORCE.crear_empleado;
-SELECT * FROM JOIN_THE_FORCE.empleado;
 
 EXECUTE JOIN_THE_FORCE.crear_bicicleta_alquiler;
-SELECT * FROM JOIN_THE_FORCE.bicicleta_alquiler;
 
 EXECUTE JOIN_THE_FORCE.crear_venta;
-SELECT * FROM JOIN_THE_FORCE.venta;
 
 EXECUTE JOIN_THE_FORCE.crear_alquiler;
-SELECT * FROM JOIN_THE_FORCE.alquiler;
 
 EXECUTE JOIN_THE_FORCE.crear_compra;
-SELECT * FROM JOIN_THE_FORCE.compra;
 
 EXECUTE JOIN_THE_FORCE.crear_reparacion;
-SELECT * FROM JOIN_THE_FORCE.reparacion;
 
 --- Mucho cuidado de no repetir los execute de los detalles
 EXECUTE JOIN_THE_FORCE.crear_detalle_compra;
-SELECT * FROM JOIN_THE_FORCE.detalle_compra;
 
 EXECUTE JOIN_THE_FORCE.crear_detalle_reparacion;
-SELECT * FROM JOIN_THE_FORCE.detalle_reparacion;
 
 EXECUTE JOIN_THE_FORCE.crear_detalle_venta;
+
+-- SELECT DE LOS SP (PARA PRUEBA DESPUES SACAR)
+SELECT * FROM JOIN_THE_FORCE.categoria_bicicleta;
+SELECT * FROM JOIN_THE_FORCE.categoria_accesorio;
+SELECT * FROM JOIN_THE_FORCE.categoria_repuesto;
+SELECT * FROM JOIN_THE_FORCE.estado_bicicleta_alquiler;
+SELECT * FROM JOIN_THE_FORCE.estado_alquiler;
+SELECT * FROM JOIN_THE_FORCE.estado_reparacion;
+SELECT * FROM JOIN_THE_FORCE.provincia;
+SELECT * FROM JOIN_THE_FORCE.marca;
+SELECT * FROM JOIN_THE_FORCE.forma_pago;
+SELECT * FROM JOIN_THE_FORCE.producto;
+SELECT * FROM JOIN_THE_FORCE.modelo;
+SELECT * FROM JOIN_THE_FORCE.localidad;
+SELECT * FROM JOIN_THE_FORCE.producto_accesorio;
+SELECT * FROM JOIN_THE_FORCE.repuesto;
+SELECT * FROM JOIN_THE_FORCE.producto_bicicleta;
+SELECT * FROM JOIN_THE_FORCE.proveedor;
+SELECT * FROM JOIN_THE_FORCE.local;
+SELECT * FROM JOIN_THE_FORCE.cliente;
+SELECT * FROM JOIN_THE_FORCE.empleado;
+SELECT * FROM JOIN_THE_FORCE.bicicleta_alquiler;
+SELECT * FROM JOIN_THE_FORCE.venta;
+SELECT * FROM JOIN_THE_FORCE.alquiler;
+SELECT * FROM JOIN_THE_FORCE.compra;
+SELECT * FROM JOIN_THE_FORCE.reparacion;
+SELECT * FROM JOIN_THE_FORCE.detalle_compra;
+SELECT * FROM JOIN_THE_FORCE.detalle_reparacion;
 SELECT * FROM JOIN_THE_FORCE.detalle_venta;
+
 
 ---- Insertar los estados necesarios pero no presentes en la tabla maestra ----
 -- estado_bicicleta_alquiler -- Estaba: (Disponible) -- Faltaban: (Alquilada, De baja) 
@@ -1026,3 +1029,111 @@ INSERT INTO  JOIN_THE_FORCE.estado_reparacion (estado_reparacion)
 VALUES ('En proceso');
 INSERT INTO  JOIN_THE_FORCE.estado_reparacion (estado_reparacion)
 VALUES ('Lista');
+
+----------------------------------- Triggers ------------------------------------
+-- Impide que una misma bicicleta tenga dos alquileres al mismo tiempo.
+-- Fin del alquiler = devolucion real, o pactada si todavia no se devolvio.
+
+CREATE OR ALTER TRIGGER JOIN_THE_FORCE.TR_alquiler_sin_superposicion
+ON JOIN_THE_FORCE.alquiler
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @cant_superpuestos INT;
+
+    -- Cuenta los alquileres de la misma bici (distintos al insertado) cuyo periodo
+    -- se pisa con el del alquiler insertado/modificado
+    SELECT @cant_superpuestos = COUNT(*)
+
+    FROM inserted i
+    JOIN JOIN_THE_FORCE.alquiler a
+        ON  a.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
+        AND a.nro_alquiler <> i.nro_alquiler -- Evita que se compare consigo mismo
+    WHERE i.fecha_hora_inicio < ISNULL(a.fecha_hora_devolucion_real, a.fecha_hora_devolucion_pactada)
+      AND a.fecha_hora_inicio < ISNULL(i.fecha_hora_devolucion_real, i.fecha_hora_devolucion_pactada);
+
+    -- Si hay al menos un alquiler superpuesto, se deshace la operacion
+    IF @cant_superpuestos > 0
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50001, 'La bicicleta ya se encuentra alquilada en el periodo indicado.', 1;
+    END
+END;
+GO
+
+
+-- El empleado que gestiona el alquiler debe pertenecer al mismo local que la bici.
+
+CREATE TRIGGER JOIN_THE_FORCE.TR_alquiler_empleado_mismo_local
+ON JOIN_THE_FORCE.alquiler
+AFTER INSERT, UPDATE
+AS
+BEGIN
+
+	DECLARE @cant_invalidos INT;
+
+	-- Cuenta cuantas filas insertadas/modificadas tienen un empleado de otro local
+	SELECT @cant_invalidos = COUNT(*)
+
+	FROM inserted i
+	JOIN JOIN_THE_FORCE.empleado e
+		ON e.nro_empleado = i.nro_empleado
+	JOIN JOIN_THE_FORCE.bicicleta_alquiler ba
+		ON ba.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
+	WHERE e.nro_local <> b.nro_local;
+
+	IF @cant_invalidos > 0
+	BEGIN
+		ROLLBACK TRANSACTION;
+		THROW 50002, 'El empleado no pertenece al local de la bicicleta alquilada.', 1;
+	END
+END;
+GO
+
+-- Chequeos para que no se registren bicicletas como accesorios y viceversa
+-- Un producto-bicicleta no puede ser accesorio.
+CREATE TRIGGER JOIN_THE_FORCE.TR_producto_bicicleta_exclusivo
+ON JOIN_THE_FORCE.producto_bicicleta
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @cant_repetidos INT;
+
+    -- Cuenta cuantos de los productos insertados ya existen como accesorio
+    SELECT @cant_repetidos = COUNT(*)
+
+    FROM inserted i
+    JOIN JOIN_THE_FORCE.producto_accesorio pa
+        ON pa.cod_producto = i.cod_producto;
+
+    -- Si alguno ya es accesorio, se deshace la operacion
+    IF @cant_repetidos > 0
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50003, 'El producto ya esta registrado como accesorio.', 1;
+    END
+END;
+GO
+
+-- Un producto-accesorio no puede ser bicicleta.
+CREATE TRIGGER JOIN_THE_FORCE.TR_producto_accesorio_exclusivo
+ON JOIN_THE_FORCE.producto_accesorio
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	DECLARE @cant_repetidos INT;
+
+    -- Cuenta cuantos de los productos insertados ya existen como bicicleta
+    SELECT @cant_repetidos = COUNT(*)
+    FROM inserted i
+    JOIN JOIN_THE_FORCE.producto_bicicleta pb
+        ON pb.cod_producto = i.cod_producto;
+
+    -- Si alguno ya es bicicleta, se deshace la operacion
+    IF @cant_repetidos > 0
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50004, 'El producto ya esta registrado como bicicleta.', 1;
+    END
+END;
+GO
