@@ -337,45 +337,39 @@ CONSTRAINT FK_detalle_compra_producto
 );
 
 
-CREATE TABLE  JOIN_THE_FORCE.detalle_reparacion (
-	cod_repuesto			VARCHAR(255) NOT NULL,
-	nro_reparacion		INT NOT NULL,
-	cantidad			INT,
-	subtotal			NUMERIC(38,2),
-	precio_unitario		NUMERIC(38,2),
+CREATE TABLE JOIN_THE_FORCE.detalle_reparacion (
+    id_detalle_reparacion INT IDENTITY(1,1) PRIMARY KEY,
+    cod_repuesto VARCHAR(255) NOT NULL,
+    nro_reparacion INT NOT NULL,
+    cantidad INT,
+    subtotal NUMERIC(38,2),
+    precio_unitario NUMERIC(38,2),
 
-	CONSTRAINT PK_detalle_repuesto
-		PRIMARY KEY(cod_repuesto, nro_reparacion),
+    FOREIGN KEY (cod_repuesto)
+        REFERENCES JOIN_THE_FORCE.repuesto(cod_repuesto),
 
-	CONSTRAINT FK_detalle_repuesto_repuesto
-		FOREIGN KEY (cod_repuesto)
-		REFERENCES JOIN_THE_FORCE.repuesto(cod_repuesto),
-
-	CONSTRAINT FK_detalle_repuesto_reparacion
-		FOREIGN KEY (nro_reparacion)
-		REFERENCES JOIN_THE_FORCE.reparacion(nro_reparacion)
+    FOREIGN KEY (nro_reparacion)
+        REFERENCES JOIN_THE_FORCE.reparacion(nro_reparacion)
 );
 
 
-CREATE TABLE  JOIN_THE_FORCE.detalle_venta (
-	nro_venta		 	INT NOT NULL,
-	cod_producto		 	VARCHAR(255) NOT NULL,
-	cant_producto		 	INT,
-	precio_unitario_producto	NUMERIC(38,2),
-	subtotal_producto		NUMERIC(38,2),
+CREATE TABLE JOIN_THE_FORCE.detalle_venta (
+    id_detalle_venta INT IDENTITY(1,1) PRIMARY KEY,
+    nro_venta INT NOT NULL,
+    cod_producto VARCHAR(255) NOT NULL,
+    cant_producto INT,
+    precio_unitario_producto NUMERIC(38,2),
+    subtotal_producto NUMERIC(38,2),
 
-CONSTRAINT PK_detalle_venta
-	PRIMARY KEY(nro_venta, cod_producto),
-	
-CONSTRAINT FK_detalle_venta_venta
-		FOREIGN KEY(nro_venta)
-		REFERENCES JOIN_THE_FORCE.venta(nro_venta),
+    CONSTRAINT FK_detalle_venta_venta
+        FOREIGN KEY (nro_venta)
+        REFERENCES JOIN_THE_FORCE.venta(nro_venta),
 
-CONSTRAINT FK_detalle_venta_producto
-		FOREIGN KEY(cod_producto)
-		REFERENCES JOIN_THE_FORCE.producto(cod_producto)
-	
+    CONSTRAINT FK_detalle_venta_producto
+        FOREIGN KEY (cod_producto)
+        REFERENCES JOIN_THE_FORCE.producto(cod_producto)
 );
+
 
 -- STORED PROCEDURES PARA MIGRACION ----------------------------
 -- NIVEL 0 -----------------------------------------------------
@@ -639,7 +633,7 @@ FROM gd_esquema.Maestra m
 		loc.nombre =m.Local_Nombre_Local AND 
 		loc.telefono = m.Local_Telefono_Local AND 
 		loc.email = m.Local_Email_Local AND 
-		loc.direccion = m.Local_Email_Local
+		loc.direccion = m.Local_Direccion_Local
 );
 END;
 
@@ -853,7 +847,7 @@ BEGIN
 END;
 
 -- NIVEL 5 ---------------------------------------------
--- detalle_compra
+-- detalle_compra (este andaba)
 GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_compra 
 AS
@@ -874,49 +868,60 @@ SELECT DISTINCT
     WHERE m.Compra_Nro_Compra IS NOT NULL
 END;
 
--- detalle_reparacion
+-- detalle_reparacion (no tiene el DISTINCT)
 GO
-CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_reparacion 
+CREATE OR ALTER PROCEDURE JOIN_THE_FORCE.crear_detalle_reparacion
 AS
 BEGIN
-INSERT INTO JOIN_THE_FORCE.detalle_reparacion(cod_repuesto, nro_reparacion, cantidad, subtotal,
-precio_unitario)
-SELECT
+    INSERT INTO JOIN_THE_FORCE.detalle_reparacion(cod_repuesto, nro_reparacion, cantidad, subtotal, precio_unitario)
+    SELECT
         repu.cod_repuesto,
         repa.nro_reparacion,
         m.Detalle_Reparacion_Cantidad_Repuesto,
         m.Detalle_Reparacion_Subtotal_Repuesto,
         m.Detalle_Reparacion_Precio_Unitario_Repuesto
+
     FROM gd_esquema.Maestra m
+
     JOIN JOIN_THE_FORCE.repuesto repu
-        ON  repu.cod_repuesto     = m.Repuesto_Cod_Repuesto
+        ON repu.cod_repuesto = m.Repuesto_Cod_Repuesto
+
     JOIN JOIN_THE_FORCE.reparacion repa
-        ON  repa.nro_reparacion      = m.Reparacion_Nro_Reparacion
+        ON repa.nro_reparacion = m.Reparacion_Nro_Reparacion
+
     WHERE m.Reparacion_Nro_Reparacion IS NOT NULL
+      AND m.Repuesto_Cod_Repuesto IS NOT NULL;
 END;
 
--- detalle_venta
+
+
+-- detalle_venta (no tiene el DISTINCT)
 GO
-CREATE PROCEDURE JOIN_THE_FORCE.crear_detalle_venta 
+
+CREATE OR ALTER PROCEDURE JOIN_THE_FORCE.crear_detalle_venta
 AS
 BEGIN
-INSERT INTO JOIN_THE_FORCE.detalle_venta(nro_venta, cod_producto, cant_producto, precio_unitario_producto,
-subtotal_producto)
-SELECT
---- Sin DISTINCT ---
+    INSERT INTO JOIN_THE_FORCE.detalle_venta(nro_venta, cod_producto, cant_producto, precio_unitario_producto, subtotal_producto)
+    SELECT 
         v.nro_venta,
         p.cod_producto,
         m.Detalle_Venta_Cantidad_Prod_Venta,
         m.Detalle_Venta_Precio_Unitario_Prod_Venta,
         m.Detalle_Venta_Subtotal_Prod_Venta
+
     FROM gd_esquema.Maestra m
+
     JOIN JOIN_THE_FORCE.venta v
-        ON  v.nro_venta     = m.Venta_Nro_Venta
+        ON v.nro_venta = m.Venta_Nro_Venta
+
     JOIN JOIN_THE_FORCE.producto p
-        ON  p.cod_producto      = m.Producto_Cod_Producto
+        ON p.cod_producto = m.Producto_Cod_Producto
+
     WHERE m.Venta_Nro_Venta IS NOT NULL
+      AND m.Producto_Cod_Producto IS NOT NULL;
 END;
 GO
+
 
 -- EXECUTE SP
 EXECUTE JOIN_THE_FORCE.crear_categoria_bicicleta;
@@ -993,3 +998,6 @@ SELECT * FROM JOIN_THE_FORCE.detalle_compra;
 
 EXECUTE JOIN_THE_FORCE.crear_detalle_reparacion;
 SELECT * FROM JOIN_THE_FORCE.detalle_reparacion;
+
+EXECUTE JOIN_THE_FORCE.crear_detalle_venta;
+SELECT * FROM JOIN_THE_FORCE.detalle_venta;
