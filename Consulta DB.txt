@@ -1049,8 +1049,8 @@ BEGIN
     JOIN JOIN_THE_FORCE.alquiler a
         ON  a.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
         AND a.nro_alquiler <> i.nro_alquiler -- Evita que se compare consigo mismo
-    WHERE i.fecha_hora_inicio < ISNULL(a.fecha_hora_devolucion_real, a.fecha_hora_devolucion_pactada)
-      AND a.fecha_hora_inicio < ISNULL(i.fecha_hora_devolucion_real, i.fecha_hora_devolucion_pactada);
+    WHERE i.fecha_hora_inicio < a.fecha_hora_devolucion_pactada
+      AND a.fecha_hora_inicio < i.fecha_hora_devolucion_pactada;
 
     -- Si hay al menos un alquiler superpuesto, se deshace la operacion
     IF @cant_superpuestos > 0
@@ -1080,7 +1080,7 @@ BEGIN
 		ON e.nro_empleado = i.nro_empleado
 	JOIN JOIN_THE_FORCE.bicicleta_alquiler ba
 		ON ba.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
-	WHERE e.nro_local <> b.nro_local;
+	WHERE e.nro_local <> ba.nro_local;
 
 	IF @cant_invalidos > 0
 	BEGIN
