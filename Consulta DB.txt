@@ -1080,7 +1080,7 @@ BEGIN
 		ON e.nro_empleado = i.nro_empleado
 	JOIN JOIN_THE_FORCE.bicicleta_alquiler ba
 		ON ba.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
-	WHERE e.nro_local <> b.nro_local;
+	WHERE e.nro_local <> ba.nro_local;
 
 	IF @cant_invalidos > 0
 	BEGIN
