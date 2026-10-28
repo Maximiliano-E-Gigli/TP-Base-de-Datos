@@ -162,7 +162,7 @@ CREATE TABLE  JOIN_THE_FORCE.cliente(
 
 	CONSTRAINT FK_cliente_localidad
 		FOREIGN KEY (nro_localidad)
-		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad)
+		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad),
 );
 
 -- NIVEL 3
@@ -178,7 +178,7 @@ CREATE TABLE  JOIN_THE_FORCE.empleado (
 	domicilio				VARCHAR(255),
 	fecha_nacimiento		DATETIME2(6),
 	puesto					VARCHAR(255),
-	fecha_ingreso			DATETIME2(6),
+	fecha_ingreso			DATETIME2(6) DEFAULT now(),
 	nro_localidad			INT NOT NULL,
 
 	CONSTRAINT FK_empleado_local
@@ -188,7 +188,7 @@ CREATE TABLE  JOIN_THE_FORCE.empleado (
 
 	CONSTRAINT FK_empleado_localidad
 		FOREIGN KEY (nro_localidad)
-		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad)
+		REFERENCES JOIN_THE_FORCE.localidad(nro_localidad),
 );
 
 CREATE TABLE  JOIN_THE_FORCE.bicicleta_alquiler(
@@ -258,7 +258,7 @@ CREATE TABLE  JOIN_THE_FORCE.alquiler (
 	nro_cliente				INT NOT NULL,
 	forma_pago				VARCHAR(255) NOT NULL,
 	nro_empleado				INT NOT NULL,
-	fecha_hora_inicio			DATETIME2(6),
+	fecha_hora_inicio			DATETIME2(6) DEFAULT now(),
 	fecha_hora_devolucion_pactada 	DATETIME2(6),
 	fecha_hora_devolucion_real		DATETIME2(6),
 	estado_alquiler			VARCHAR(255) NOT NULL,
@@ -978,6 +978,36 @@ EXECUTE JOIN_THE_FORCE.crear_detalle_compra;
 EXECUTE JOIN_THE_FORCE.crear_detalle_reparacion;
 
 EXECUTE JOIN_THE_FORCE.crear_detalle_venta;
+
+-- SELECT DE LOS SP (PARA PRUEBA DESPUES SACAR)
+SELECT * FROM JOIN_THE_FORCE.categoria_bicicleta;
+SELECT * FROM JOIN_THE_FORCE.categoria_accesorio;
+SELECT * FROM JOIN_THE_FORCE.categoria_repuesto;
+SELECT * FROM JOIN_THE_FORCE.estado_bicicleta_alquiler;
+SELECT * FROM JOIN_THE_FORCE.estado_alquiler;
+SELECT * FROM JOIN_THE_FORCE.estado_reparacion;
+SELECT * FROM JOIN_THE_FORCE.provincia;
+SELECT * FROM JOIN_THE_FORCE.marca;
+SELECT * FROM JOIN_THE_FORCE.forma_pago;
+SELECT * FROM JOIN_THE_FORCE.producto;
+SELECT * FROM JOIN_THE_FORCE.modelo;
+SELECT * FROM JOIN_THE_FORCE.localidad;
+SELECT * FROM JOIN_THE_FORCE.producto_accesorio;
+SELECT * FROM JOIN_THE_FORCE.repuesto;
+SELECT * FROM JOIN_THE_FORCE.producto_bicicleta;
+SELECT * FROM JOIN_THE_FORCE.proveedor;
+SELECT * FROM JOIN_THE_FORCE.local;
+SELECT * FROM JOIN_THE_FORCE.cliente;
+SELECT * FROM JOIN_THE_FORCE.empleado;
+SELECT * FROM JOIN_THE_FORCE.bicicleta_alquiler;
+SELECT * FROM JOIN_THE_FORCE.venta;
+SELECT * FROM JOIN_THE_FORCE.alquiler;
+SELECT * FROM JOIN_THE_FORCE.compra;
+SELECT * FROM JOIN_THE_FORCE.reparacion;
+SELECT * FROM JOIN_THE_FORCE.detalle_compra;
+SELECT * FROM JOIN_THE_FORCE.detalle_reparacion;
+SELECT * FROM JOIN_THE_FORCE.detalle_venta;
+
 
 ---- Insertar los estados necesarios pero no presentes en la tabla maestra ----
 -- estado_bicicleta_alquiler -- Estaba: (Disponible) -- Faltaban: (Alquilada, De baja) 
