@@ -1030,34 +1030,92 @@ VALUES ('En proceso');
 INSERT INTO  JOIN_THE_FORCE.estado_reparacion (estado_reparacion)
 VALUES ('Lista');
 
+----------------------------------- Índices ------------------------------------
+-- Ventas: busqueda por empleado (de ahi se obtiene el local), cliente y fecha
+CREATE NONCLUSTERED INDEX IX_venta_nro_empleado ON JOIN_THE_FORCE.venta (nro_empleado);
+CREATE NONCLUSTERED INDEX IX_venta_nro_cliente  ON JOIN_THE_FORCE.venta (nro_cliente);
+CREATE NONCLUSTERED INDEX IX_venta_fecha_hora   ON JOIN_THE_FORCE.venta (fecha_hora) INCLUDE (total_venta);
+ 
+-- Alquileres: control de superposicion por bici y rango de fechas
+-- (lo usa el trigger TR_alquiler_sin_superposicion)
+CREATE NONCLUSTERED INDEX IX_alquiler_bici_inicio
+    ON JOIN_THE_FORCE.alquiler (nro_serie_bici_alquiler, fecha_hora_inicio)
+    INCLUDE (fecha_hora_devolucion_pactada, fecha_hora_devolucion_real, estado_alquiler);
+CREATE NONCLUSTERED INDEX IX_alquiler_nro_empleado ON JOIN_THE_FORCE.alquiler (nro_empleado);
+CREATE NONCLUSTERED INDEX IX_alquiler_nro_cliente  ON JOIN_THE_FORCE.alquiler (nro_cliente);
+ 
+-- Reparaciones: busqueda por tecnico (local) y cliente
+CREATE NONCLUSTERED INDEX IX_reparacion_nro_empleado ON JOIN_THE_FORCE.reparacion (nro_empleado);
+CREATE NONCLUSTERED INDEX IX_reparacion_nro_cliente  ON JOIN_THE_FORCE.reparacion (nro_cliente);
+ 
+-- Detalle de reparación: 
+CREATE NONCLUSTERED INDEX IX_detalle_reparacion_nro_reparacion ON JOIN_THE_FORCE.detalle_reparacion (nro_reparacion);
+CREATE NONCLUSTERED INDEX IX_detalle_reparacion_cod_repuesto ON JOIN_THE_FORCE.detalle_reparacion (cod_repuesto) INCLUDE (cantidad);
+
+-- Detalle de venta:
+CREATE NONCLUSTERED INDEX IX_detalle_venta_nro_venta ON JOIN_THE_FORCE.detalle_venta (nro_venta);
+CREATE NONCLUSTERED INDEX IX_detalle_venta_cod_producto ON JOIN_THE_FORCE.detalle_venta (cod_producto) INCLUDE (cant_producto);
+
 ----------------------------------- Triggers ------------------------------------
 -- Impide que una misma bicicleta tenga dos alquileres al mismo tiempo.
 -- Fin del alquiler = devolucion real, o pactada si todavia no se devolvio.
+-- Verifica estados
 
+GO
 CREATE OR ALTER TRIGGER JOIN_THE_FORCE.TR_alquiler_sin_superposicion
 ON JOIN_THE_FORCE.alquiler
 AFTER INSERT, UPDATE
 AS
 BEGIN
-    DECLARE @cant_superpuestos INT;
 
-    -- Cuenta los alquileres de la misma bici (distintos al insertado) cuyo periodo
-    -- se pisa con el del alquiler insertado/modificado
+    DECLARE @cant_superpuestos INT;
+    DECLARE @cant_sin_devolver INT;
+
+    -- Cuenta los alquileres de la misma bici (distintos al insertado) cuyos periodos pactados se superponen. No considera los alquileres ya devueltos.
+
     SELECT @cant_superpuestos = COUNT(*)
 
     FROM inserted i
     JOIN JOIN_THE_FORCE.alquiler a
-        ON  a.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
+        ON a.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
         AND a.nro_alquiler <> i.nro_alquiler -- Evita que se compare consigo mismo
-    WHERE i.fecha_hora_inicio < a.fecha_hora_devolucion_pactada
+
+    WHERE i.estado_alquiler IN ('Reservado', 'En curso', 'Vencido')
+      AND a.estado_alquiler IN ('Reservado', 'En curso', 'Vencido')
+      AND i.fecha_hora_inicio < a.fecha_hora_devolucion_pactada
       AND a.fecha_hora_inicio < i.fecha_hora_devolucion_pactada;
 
-    -- Si hay al menos un alquiler superpuesto, se deshace la operacion
+	-- Si hay al menos un alquiler superpuesto, se deshace la operacion
+
     IF @cant_superpuestos > 0
     BEGIN
         ROLLBACK TRANSACTION;
         THROW 50001, 'La bicicleta ya se encuentra alquilada en el periodo indicado.', 1;
-    END
+    END;
+
+
+    -- Verifica si la bici tiene otro alquiler en curso o vencido que todavia no fue devuelto.
+
+    SELECT @cant_sin_devolver = COUNT(*)
+
+    FROM inserted i
+    JOIN JOIN_THE_FORCE.alquiler a
+        ON a.nro_serie_bici_alquiler = i.nro_serie_bici_alquiler
+        AND a.nro_alquiler <> i.nro_alquiler
+
+    WHERE i.estado_alquiler = 'En curso'
+      AND i.fecha_hora_devolucion_real IS NULL
+      AND a.estado_alquiler IN ('En curso', 'Vencido')
+      AND a.fecha_hora_devolucion_real IS NULL;
+
+    -- Si existe otro alquiler sin devolver, se deshace la operacion
+
+    IF @cant_sin_devolver > 0
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50005, 'La bicicleta sigue alquilada y no fue devuelta.', 1;
+    END;
+
 END;
 GO
 
