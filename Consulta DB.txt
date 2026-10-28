@@ -1032,29 +1032,29 @@ VALUES ('Lista');
 
 ----------------------------------- Índices ------------------------------------
 -- Ventas: busqueda por empleado (de ahi se obtiene el local), cliente y fecha
-CREATE NONCLUSTERED INDEX IX_venta_nro_empleado ON JOIN_THE_FORCE.venta (nro_empleado);
-CREATE NONCLUSTERED INDEX IX_venta_nro_cliente  ON JOIN_THE_FORCE.venta (nro_cliente);
-CREATE NONCLUSTERED INDEX IX_venta_fecha_hora   ON JOIN_THE_FORCE.venta (fecha_hora) INCLUDE (total_venta);
+CREATE INDEX IX_venta_nro_empleado ON JOIN_THE_FORCE.venta (nro_empleado);
+CREATE INDEX IX_venta_nro_cliente  ON JOIN_THE_FORCE.venta (nro_cliente);
+CREATE INDEX IX_venta_fecha_hora   ON JOIN_THE_FORCE.venta (fecha_hora) INCLUDE (total_venta);
  
 -- Alquileres: control de superposicion por bici y rango de fechas
 -- (lo usa el trigger TR_alquiler_sin_superposicion)
-CREATE NONCLUSTERED INDEX IX_alquiler_bici_inicio
+CREATE INDEX IX_alquiler_bici_inicio
     ON JOIN_THE_FORCE.alquiler (nro_serie_bici_alquiler, fecha_hora_inicio)
     INCLUDE (fecha_hora_devolucion_pactada, fecha_hora_devolucion_real, estado_alquiler);
-CREATE NONCLUSTERED INDEX IX_alquiler_nro_empleado ON JOIN_THE_FORCE.alquiler (nro_empleado);
-CREATE NONCLUSTERED INDEX IX_alquiler_nro_cliente  ON JOIN_THE_FORCE.alquiler (nro_cliente);
+CREATE INDEX IX_alquiler_nro_empleado ON JOIN_THE_FORCE.alquiler (nro_empleado);
+CREATE INDEX IX_alquiler_nro_cliente  ON JOIN_THE_FORCE.alquiler (nro_cliente);
  
 -- Reparaciones: busqueda por tecnico (local) y cliente
-CREATE NONCLUSTERED INDEX IX_reparacion_nro_empleado ON JOIN_THE_FORCE.reparacion (nro_empleado);
-CREATE NONCLUSTERED INDEX IX_reparacion_nro_cliente  ON JOIN_THE_FORCE.reparacion (nro_cliente);
+CREATE INDEX IX_reparacion_nro_empleado ON JOIN_THE_FORCE.reparacion (nro_empleado);
+CREATE INDEX IX_reparacion_nro_cliente  ON JOIN_THE_FORCE.reparacion (nro_cliente);
  
 -- Detalle de reparación: 
-CREATE NONCLUSTERED INDEX IX_detalle_reparacion_nro_reparacion ON JOIN_THE_FORCE.detalle_reparacion (nro_reparacion);
-CREATE NONCLUSTERED INDEX IX_detalle_reparacion_cod_repuesto ON JOIN_THE_FORCE.detalle_reparacion (cod_repuesto) INCLUDE (cantidad);
+CREATE INDEX IX_detalle_reparacion_nro_reparacion ON JOIN_THE_FORCE.detalle_reparacion (nro_reparacion);
+CREATE INDEX IX_detalle_reparacion_cod_repuesto ON JOIN_THE_FORCE.detalle_reparacion (cod_repuesto) INCLUDE (cantidad);
 
 -- Detalle de venta:
-CREATE NONCLUSTERED INDEX IX_detalle_venta_nro_venta ON JOIN_THE_FORCE.detalle_venta (nro_venta);
-CREATE NONCLUSTERED INDEX IX_detalle_venta_cod_producto ON JOIN_THE_FORCE.detalle_venta (cod_producto) INCLUDE (cant_producto);
+CREATE INDEX IX_detalle_venta_nro_venta ON JOIN_THE_FORCE.detalle_venta (nro_venta);
+CREATE INDEX IX_detalle_venta_cod_producto ON JOIN_THE_FORCE.detalle_venta (cod_producto) INCLUDE (cant_producto);
 
 ----------------------------------- Triggers ------------------------------------
 -- Impide que una misma bicicleta tenga dos alquileres al mismo tiempo.
