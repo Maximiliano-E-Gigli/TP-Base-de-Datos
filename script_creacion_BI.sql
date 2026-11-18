@@ -44,7 +44,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_categoria_repuesto(
 
 -- Categoría de Bicicleta
 CREATE TABLE JOIN_THE_FORCE.BI_categoria_bicicleta(
-    categoria_bicicleta      VARCHAR(255) PRIMARY KEY
+    categoria_bici     VARCHAR(255) PRIMARY KEY
 );
 
 ----------------------------------- NIVEL 1 -----------------------------------
@@ -56,6 +56,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_venta(
     id_tiempo               INT,
     id_local                INT,
     subtotal                NUMERIC(38,2),
+    cant_ventas             INT,
 
     CONSTRAINT PK_hecho_venta
         PRIMARY KEY(id_rango_etario, tipo_producto, id_tiempo, id_local),
@@ -77,14 +78,14 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_venta(
         REFERENCES JOIN_THE_FORCE.BI_local(id_local)
 );
 
--- Hechos de Reparaciones
+-- Hechos de Alquileres
 CREATE TABLE JOIN_THE_FORCE.BI_hecho_alquiler(
     id_tiempo               INT,
     id_local                INT,
     categoria_bici          VARCHAR(255),
     importe_total           NUMERIC(38,2),
-    -- Considerar si deberia ser INTEGER O NUMERIC
-    cant_horas              INTEGER 
+    cant_horas              NUMERIC(38,2), -- NUMERIC(38,2) porque 1 hora y 40 minutos son 1,67 horas, con INT redondea para arriba o para abajo
+    cant_alquileres         INT,
 
     CONSTRAINT PK_hecho_alquiler
         PRIMARY KEY(id_tiempo, id_local, categoria_bici),
@@ -102,7 +103,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_alquiler(
         REFERENCES JOIN_THE_FORCE.BI_categoria_bicicleta(categoria_bici)
 );
 
--- Hechos de Alquileres
+-- Hechos de Reparacion
 CREATE TABLE JOIN_THE_FORCE.BI_hecho_reparacion(
     id_tiempo                       INT,
     id_local                        INT,
@@ -138,6 +139,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_compra(
     tipo_producto                    VARCHAR(255),
     cantidad                         INT,
     precio_unidad                    NUMERIC(38,2),
+    cant_compras                     INT,
 
 
     CONSTRAINT PK_BI_hecho_compra
@@ -153,7 +155,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_compra(
 
     CONSTRAINT FK_BI_hecho_compra_tipo_producto
     FOREIGN KEY (tipo_producto)
-    REFERENCES JOIN_THE_FORCE.BI_tipo_producto(tipo_producto),
+    REFERENCES JOIN_THE_FORCE.BI_tipo_producto(tipo_producto)
      
 );
 
