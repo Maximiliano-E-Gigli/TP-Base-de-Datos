@@ -44,7 +44,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_categoria_repuesto(
 
 -- Categoría de Bicicleta
 CREATE TABLE JOIN_THE_FORCE.BI_categoria_bicicleta(
-    categoria_bici     VARCHAR(255) PRIMARY KEY
+    categoria_bicicleta      VARCHAR(255) PRIMARY KEY
 );
 
 ----------------------------------- NIVEL 1 -----------------------------------
@@ -78,17 +78,17 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_venta(
         REFERENCES JOIN_THE_FORCE.BI_local(id_local)
 );
 
--- Hechos de Alquileres
+-- Hechos de Aquileres
 CREATE TABLE JOIN_THE_FORCE.BI_hecho_alquiler(
     id_tiempo               INT,
     id_local                INT,
-    categoria_bici          VARCHAR(255),
+    categoria_bicicleta     VARCHAR(255),
     importe_total           NUMERIC(38,2),
-    cant_horas              NUMERIC(38,2), -- NUMERIC(38,2) porque 1 hora y 40 minutos son 1,67 horas, con INT redondea para arriba o para abajo
+    cant_horas              NUMERIC(38,2),
     cant_alquileres         INT,
 
     CONSTRAINT PK_hecho_alquiler
-        PRIMARY KEY(id_tiempo, id_local, categoria_bici),
+        PRIMARY KEY(id_tiempo, id_local, categoria_bicicleta),
 
     CONSTRAINT FK_hecho_alquiler_id_tiempo
         FOREIGN KEY(id_tiempo)
@@ -99,25 +99,18 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_alquiler(
         REFERENCES JOIN_THE_FORCE.BI_local(id_local),
 
     CONSTRAINT FK_hecho_alquiler_categoria_bici
-        FOREIGN KEY(categoria_bici)
-        REFERENCES JOIN_THE_FORCE.BI_categoria_bicicleta(categoria_bici)
+        FOREIGN KEY(categoria_bicicleta)
+        REFERENCES JOIN_THE_FORCE.BI_categoria_bicicleta(categoria_bicicleta)
 );
 
--- Hechos de Reparacion
+-- Hechos de Reparaciones
 CREATE TABLE JOIN_THE_FORCE.BI_hecho_reparacion(
     id_tiempo                       INT,
     id_local                        INT,
-    categoria_repuesto              VARCHAR(255),
-    tipo_ingreso_reparacion         VARCHAR(255),
-    subtotal                        NUMERIC(38,2),
     cant_horas                      NUMERIC(38,2),
     
     CONSTRAINT PK_hecho_reparacion
-        PRIMARY KEY(id_tiempo, id_local, categoria_repuesto, tipo_ingreso_reparacion),
-
-    CONSTRAINT FK_hecho_reparacion_categoria_repuesto
-        FOREIGN KEY(categoria_repuesto)
-        REFERENCES JOIN_THE_FORCE.BI_categoria_repuesto(categoria_repuesto),
+        PRIMARY KEY(id_tiempo, id_local),
 
     CONSTRAINT FK_hecho_reparacion_id_tiempo
         FOREIGN KEY(id_tiempo)
@@ -125,11 +118,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_reparacion(
 
     CONSTRAINT FK_hecho_reparacion_id_local
         FOREIGN KEY(id_local)
-        REFERENCES JOIN_THE_FORCE.BI_local(id_local),
-
-    CONSTRAINT FK_hecho_reparacion_tipo_ingreso_reparacion
-        FOREIGN KEY(tipo_ingreso_reparacion)
-        REFERENCES JOIN_THE_FORCE.BI_tipo_ingreso_reparacion(tipo_ingreso_reparacion)
+        REFERENCES JOIN_THE_FORCE.BI_local(id_local)
 );
 
 -- Hechos de Compras
@@ -139,24 +128,63 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_compra(
     tipo_producto                    VARCHAR(255),
     cantidad                         INT,
     precio_unidad                    NUMERIC(38,2),
-    cant_compras                     INT,
-
 
     CONSTRAINT PK_BI_hecho_compra
     PRIMARY KEY (id_tiempo,id_local,tipo_producto),
-
+                        
     CONSTRAINT FK_BI_hecho_compra_id_tiempo
-    FOREIGN KEY (id_tiempo)
-    REFERENCES JOIN_THE_FORCE.BI_tiempo(id_tiempo),
+        FOREIGN KEY (id_tiempo)
+        REFERENCES JOIN_THE_FORCE.BI_tiempo(id_tiempo),
 
     CONSTRAINT FK_BI_hecho_compra_id_local
-    FOREIGN KEY (id_local)
-    REFERENCES JOIN_THE_FORCE.BI_local(id_local),
+        FOREIGN KEY (id_local)
+        REFERENCES JOIN_THE_FORCE.BI_local(id_local),
 
     CONSTRAINT FK_BI_hecho_compra_tipo_producto
-    FOREIGN KEY (tipo_producto)
-    REFERENCES JOIN_THE_FORCE.BI_tipo_producto(tipo_producto)
-     
+        FOREIGN KEY (tipo_producto)
+        REFERENCES JOIN_THE_FORCE.BI_tipo_producto(tipo_producto)
+);
+
+-- Hechos de Repuestos Usados
+CREATE TABLE JOIN_THE_FORCE.BI_hecho_repuestos_usados(
+    id_tiempo               INT,
+    categoria_repuesto      VARCHAR(255),
+    cantidad                INT,
+
+    CONSTRAINT PK_BI_hecho_repuesto_usado
+        PRIMARY KEY (id_tiempo, categoria_repuesto),
+
+    CONSTRAINT FK_BI_hecho_repuesto_usado_id_tiempo
+        FOREIGN KEY (id_tiempo)
+        REFERENCES JOIN_THE_FORCE.BI_tiempo(id_tiempo),
+
+    CONSTRAINT FK_BI_hecho_repuesto_usado_categoria_repuesto
+        FOREIGN KEY (categoria_repuesto)
+        REFERENCES JOIN_THE_FORCE.BI_categoria_repuesto(categoria_repuesto)
+);  
+
+-- Hechos de Ingresos de Reparación
+CREATE TABLE JOIN_THE_FORCE.BI_hecho_ingreso_reparacion(
+    id_tiempo                   INT,
+    id_local                    INT,
+    tipo_ingreso_reparacion     VARCHAR(255),
+    subtotal                    NUMERIC(38,2),
+
+    CONSTRAINT PK_BI_hecho_ingreso_reparacion
+        PRIMARY KEY (id_tiempo, id_local, tipo_ingreso_reparacion),
+
+    CONSTRAINT FK_BI_hecho_ingreso_reparacion_id_tiempo
+        FOREIGN KEY (id_tiempo)
+        REFERENCES JOIN_THE_FORCE.BI_tiempo(id_tiempo),
+
+    CONSTRAINT FK_BI_hecho_ingreso_reparacion_id_local
+        FOREIGN KEY (id_local)
+        REFERENCES JOIN_THE_FORCE.BI_local(id_local),
+
+    CONSTRAINT FK_BI_hecho_ingreso_reparacion_tipo_ingreso_reparacion
+        FOREIGN KEY (tipo_ingreso_reparacion)
+        REFERENCES JOIN_THE_FORCE.BI_tipo_ingreso_reparacion(tipo_ingreso_reparacion)
+
 );
 
 /*================================== STORED PROCEDURES PARA LA MIGRACIÓN ==================================*/
@@ -169,20 +197,17 @@ CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_tiempo
 AS
 BEGIN
 INSERT INTO JOIN_THE_FORCE.BI_tiempo(anio, trimestre, mes)
-    SELECT DISTINCT YEAR(v.fecha_hora), DATEPART(QUARTER, v.fecha_hora), MONTH(v.fecha_hora)
-    FROM JOIN_THE_FORCE.venta v
-    
-INSERT INTO JOIN_THE_FORCE.BI_tiempo(anio, trimestre, mes)
-    SELECT DISTINCT YEAR(a.fecha_hora_inicio), DATEPART(QUARTER, a.fecha_hora_inicio), MONTH(a.fecha_hora_inicio)
-    FROM JOIN_THE_FORCE.alquiler a
-
-INSERT INTO JOIN_THE_FORCE.BI_tiempo(anio, trimestre, mes)
-    SELECT DISTINCT YEAR(c.fecha_compra), DATEPART(QUARTER, c.fecha_compra), MONTH(c.fecha_compra)
-    FROM JOIN_THE_FORCE.compra c
-
-INSERT INTO JOIN_THE_FORCE.BI_tiempo(anio, trimestre, mes)
-    SELECT DISTINCT YEAR(r.fecha_ingreso), DATEPART(QUARTER, r.fecha_ingreso), MONTH(r.fecha_ingreso)
-    FROM JOIN_THE_FORCE.reparacion r 
+    (SELECT DISTINCT YEAR(v.fecha_hora), DATEPART(QUARTER, v.fecha_hora), MONTH(v.fecha_hora)
+    FROM JOIN_THE_FORCE.venta v) 
+    UNION 
+    (SELECT DISTINCT YEAR(a.fecha_hora_inicio), DATEPART(QUARTER, a.fecha_hora_inicio), MONTH(a.fecha_hora_inicio)
+    FROM JOIN_THE_FORCE.alquiler a)
+    UNION
+    (SELECT DISTINCT YEAR(c.fecha_compra), DATEPART(QUARTER, c.fecha_compra), MONTH(c.fecha_compra)
+    FROM JOIN_THE_FORCE.compra c)
+    UNION
+    (SELECT DISTINCT YEAR(r.fecha_ingreso), DATEPART(QUARTER, r.fecha_ingreso), MONTH(r.fecha_ingreso)
+    FROM JOIN_THE_FORCE.reparacion r )
 
 END;
 GO
@@ -257,7 +282,7 @@ CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_categoria_bicicleta
 AS
 BEGIN
     INSERT INTO JOIN_THE_FORCE.BI_categoria_bicicleta(categoria_bicicleta)
-    SELECT categoria_bicicleta
+    SELECT categoria_bici
     FROM JOIN_THE_FORCE.categoria_bicicleta
 END;
 GO
@@ -273,24 +298,94 @@ EXECUTE JOIN_THE_FORCE.crear_BI_categoria_bicicleta;
 
 -------------------------------------------------- NIVEL 1 --------------------------------------------------
 -- BI_hecho_venta
-
-CREATE PROCEDURE
+GO
+CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_venta
 AS
 BEGIN
-    INSERT INTO JOIN_THE_FORCE.BI_hecho_venta(id_rango_etario, tipo_producto, id_tiempo, id_local, subtotal)
-    SELECT (SELECT id_rango_etario FROM JOIN_THE_FORCE.BI_rango_etario re 
-        WHERE DATEDIFF(YEAR, c.fecha_nacimiento, v.fecha_hora) BETWEEN re.edad_min AND re.edad_max)
-    FROM JOIN_THE_FORCE.venta v 
-        JOIN JOIN_THE_FORCE.cliente c ON (v.nro_cliente = c.nro_cliente)
+    INSERT INTO JOIN_THE_FORCE.BI_hecho_venta
+        (id_rango_etario, tipo_producto, id_tiempo, id_local, subtotal, cant_ventas)
+    SELECT 
+        ventaConEdad.id_rango_etario,
+        ventaConEdad.tipo_producto,
+        bi_t.id_tiempo,
+        bi_l.id_local,
+        SUM(ventaConEdad.subtotal_producto),
+        COUNT(DISTINCT ventaConEdad.nro_venta)
+        
+    FROM (
+        -- Subconsulta para obtener las ventas con la edad del cliente
+        SELECT ventaSinEdad.nro_venta,
+               ventaSinEdad.fecha_hora,
+               ventaSinEdad.nro_local,
+               ventaSinEdad.subtotal_producto,
+               ventaSinEdad.tipo_producto,
+               (SELECT bi_re.id_rango_etario
+                FROM JOIN_THE_FORCE.BI_rango_etario bi_re
+                WHERE (DATEDIFF(YEAR, ventaSinEdad.fecha_nacimiento, ventaSinEdad.fecha_hora)
+                       - CASE WHEN DATEADD(YEAR,
+                                           DATEDIFF(YEAR, ventaSinEdad.fecha_nacimiento, ventaSinEdad.fecha_hora),
+                                           ventaSinEdad.fecha_nacimiento) > ventaSinEdad.fecha_hora
+                              THEN 1 ELSE 0 END)
+                      BETWEEN bi_re.edad_min AND bi_re.edad_max
+                ) AS id_rango_etario    
+        FROM (
+            -- Subconsulta para obtener las ventas sin la edad del cliente
+            SELECT v.nro_venta,
+                   v.fecha_hora,
+                   c.fecha_nacimiento,
+                   e.nro_local,
+                   dv.subtotal_producto,
+                   CASE WHEN pb.cod_producto IS NOT NULL THEN 'Bicicleta'
+                        WHEN pa.cod_producto IS NOT NULL THEN 'Accesorio'
+                    END AS tipo_producto     
+            FROM JOIN_THE_FORCE.venta v 
+                JOIN JOIN_THE_FORCE.cliente c ON (v.nro_cliente = c.nro_cliente)
+                JOIN JOIN_THE_FORCE.detalle_venta dv ON (dv.nro_venta = v.nro_venta)
+                JOIN JOIN_THE_FORCE.empleado e ON (v.nro_empleado = e.nro_empleado)
+                LEFT JOIN JOIN_THE_FORCE.producto_bicicleta pb ON pb.cod_producto = dv.cod_producto
+                LEFT JOIN JOIN_THE_FORCE.producto_accesorio pa ON pa.cod_producto = dv.cod_producto              
+        ) ventaSinEdad
+    ) ventaConEdad 
+        JOIN JOIN_THE_FORCE.BI_local bi_l ON (bi_l.nro_local = ventaConEdad.nro_local)
+        JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (bi_t.anio = YEAR(ventaConEdad.fecha_hora) AND bi_t.mes = MONTH(ventaConEdad.fecha_hora))
+        WHERE ventaConEdad.tipo_producto IS NOT NULL 
+            AND ventaConEdad.id_rango_etario IS NOT NULL
+        GROUP BY ventaConEdad.id_rango_etario, ventaConEdad.tipo_producto, bi_t.id_tiempo, bi_l.id_local;
 END;
 GO
 
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_venta
 
+ ----------- AVISO: NO ANDA BIEN, ESTAMOS EN PROCESO ---------------------
+-- BI_hecho_alquiler
+GO
+CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_alquiler
+AS
+BEGIN
+    INSERT INTO JOIN_THE_FORCE.BI_hecho_alquiler (id_tiempo, id_local, categoria_bicicleta, importe_total, cant_horas, cant_alquileres)
+    SELECT bi_t.id_tiempo,
+           bi_l.id_local,
+           m.categoria_bici,
+           SUM(a.importe_total),
+           DATEDIFF(HOUR, a.fecha_hora_inicio, COALESCE(a.fecha_hora_devolucion_real, a.fecha_hora_devolucion_pactada)),
+           COUNT(DISTINCT a.nro_alquiler)
+           
+    FROM JOIN_THE_FORCE.alquiler a 
+        
+        JOIN JOIN_THE_FORCE.empleado e ON (e.nro_empleado = a.nro_empleado) --Para conseguir nro_local
+        JOIN JOIN_THE_FORCE.bicicleta_alquiler ba ON (ba.nro_serie_bici_alquiler = a.nro_serie_bici_alquiler) -- Para conseguir modelo de la bicicleta
+        JOIN JOIN_THE_FORCE.modelo m ON (m.modelo = ba.modelo) -- Para conseguir categoria de la bicicleta
+        -- Ahora los joins son con cosas del BI
+        JOIN JOIN_THE_FORCE.BI_local bi_l ON (bi_l.nro_local = e.nro_local)
+        JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (bi_t.anio = YEAR(a.fecha_hora_inicio) AND bi_t.mes = MONTH(a.fecha_hora_inicio))
+    GROUP BY bi_t.id_tiempo, bi_l.id_local, m.categoria_bici
+END;
+GO
 
 /*============================================= VIEWS =============================================*/
 /*
 CREATE VIEW JOIN_THE_FORCE.V_fact_vent_mens_x_local
-    (mes, local, facturacion_total)
+    (mes, local, facturacion_total) 
     AS
     SELECT t.mes, l.nro_local, SUM(hv.subtotal)
     FROM JOIN_THE_FORCE.BI_hecho_venta hv 
