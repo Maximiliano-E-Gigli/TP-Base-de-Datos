@@ -383,12 +383,34 @@ END;
 GO
 
 /*============================================= VIEWS =============================================*/
+
+-- Vista 1: Facturacion total mensual en ventas de cada local
+CREATE VIEW JOIN_THE_FORCE.V_facturacion_ventas_mensual_x_local
+AS
+SELECT bi_t.anio,
+       bi_t.mes,
+       bi_l.nro_local,
+       bi_l.nombre AS local
+       SUM(hv.subtotal) AS facturacion_total
+FROM JOIN_THE_FORCE.BI_hecho_venta hv 
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hv.id_tiempo = bi_t.id_tiempo)
+    JOIN JOIN_THE_FORCE.BI_local bi_l ON (hv.id_local = bi_l.id_local)
+GROUP BY bi_t.anio, bi_t.mes, bi_l.nro_local, bi_l.nombre;
+
+
 /*
-CREATE VIEW JOIN_THE_FORCE.V_fact_vent_mens_x_local
-    (mes, local, facturacion_total) 
-    AS
-    SELECT t.mes, l.nro_local, SUM(hv.subtotal)
-    FROM JOIN_THE_FORCE.BI_hecho_venta hv 
-        JOIN JOIN_THE_FORCE.BI_tiempo t ON (hv.id_tiempo = t.id_tiempo)
-        JOIN JOIN_THE_FORCE.BI_local l ON (hv.id_local = l.id_local)
+Vista 2: Ticket promedio ($) de venta mensual por tipo de producto (bicicletas o
+accesorios) y rango etario del cliente.
 */
+
+CREATE VIEW JOIN_THE_FORCE.V_ticket_promedio_mensual_x_tipo_prod_x_rango_etario
+AS
+SELECT bi_t.anio
+       bi_t.mes
+       hv.tipo_producto
+       bi_re.descripcion AS rango_etario
+       CAST(SUM(hv.subtotal) / NULLIF(SUM(hv.cant_ventas),0) AS DECIMAL(38,2)) AS ticket_promedio
+FROM JOIN_THE_FORCE.BI_hecho_venta hv
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hv.id_tiempo = bi_t.id_tiempo)
+    JOIN JOIN_THE_FORCE.BI_rango_etario bi_re ON (hv.id_rango_etario = bi_t.id_rango_etario)
+GROUP BY bi_t.anio, bi_t.mes, hv.tipo_producto, bi_re.descripcion;
