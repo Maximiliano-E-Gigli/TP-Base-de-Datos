@@ -56,6 +56,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_venta(
     id_tiempo               INT,
     id_local                INT,
     subtotal                NUMERIC(38,2),
+    unidades_vendidas       INT,
     cant_ventas             INT,
 
     CONSTRAINT PK_hecho_venta
@@ -107,8 +108,9 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_alquiler(
 CREATE TABLE JOIN_THE_FORCE.BI_hecho_reparacion(
     id_tiempo                       INT,
     id_local                        INT,
-    cant_horas                      NUMERIC(38,2),
-    
+    desvio_total_dias               NUMERIC(38,2),
+    cant_reparaciones               INT,
+
     CONSTRAINT PK_hecho_reparacion
         PRIMARY KEY(id_tiempo, id_local),
 
@@ -129,6 +131,7 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_compra(
     cantidad                         INT,
     -- Cambio de " precio_unidad " a " importe_total "
     importe_total                    NUMERIC(38,2),
+    cant_compras                     INT,
 
     CONSTRAINT PK_BI_hecho_compra
     PRIMARY KEY (id_tiempo,id_local,tipo_producto),
@@ -304,13 +307,14 @@ CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_venta
 AS
 BEGIN
     INSERT INTO JOIN_THE_FORCE.BI_hecho_venta
-        (id_rango_etario, tipo_producto, id_tiempo, id_local, subtotal, cant_ventas)
+        (id_rango_etario, tipo_producto, id_tiempo, id_local, subtotal, unidades_vendidas, cant_ventas)
     SELECT 
         ventaConEdad.id_rango_etario,
         ventaConEdad.tipo_producto,
         bi_t.id_tiempo,
         bi_l.id_local,
         SUM(ventaConEdad.subtotal_producto),
+        SUM (ventaConEdad.unidades_vendidas),
         COUNT(DISTINCT ventaConEdad.nro_venta)
         
     FROM (
@@ -319,6 +323,7 @@ BEGIN
                ventaSinEdad.fecha_hora,
                ventaSinEdad.nro_local,
                ventaSinEdad.subtotal_producto,
+               ventaSinEdad.unidades_vendidas,
                ventaSinEdad.tipo_producto,
                (SELECT bi_re.id_rango_etario
                 FROM JOIN_THE_FORCE.BI_rango_etario bi_re
@@ -336,6 +341,7 @@ BEGIN
                    c.fecha_nacimiento,
                    e.nro_local,
                    dv.subtotal_producto,
+                   dv.cant_producto,
                    CASE WHEN pb.cod_producto IS NOT NULL THEN 'Bicicleta'
                         WHEN pa.cod_producto IS NOT NULL THEN 'Accesorio'
                     END AS tipo_producto     
@@ -355,9 +361,8 @@ BEGIN
 END;
 GO
 
-EXECUTE JOIN_THE_FORCE.crear_BI_hecho_venta
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_venta;
 
- ----------- AVISO: NO ANDA BIEN, ESTAMOS EN PROCESO ---------------------
 -- BI_hecho_alquiler
 GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_alquiler
@@ -368,11 +373,11 @@ BEGIN
            bi_l.id_local,
            m.categoria_bici,
            SUM(a.importe_total),
-           DATEDIFF(HOUR, a.fecha_hora_inicio, COALESCE(a.fecha_hora_devolucion_real, a.fecha_hora_devolucion_pactada)),
+           SUM(DATEDIFF(MINUTE, a.fecha_hora_inicio,  COALESCE(a.fecha_hora_devolucion_real, a.fecha_hora_devolucion_pactada))) / 60.0,
            COUNT(DISTINCT a.nro_alquiler)
-           
+
     FROM JOIN_THE_FORCE.alquiler a 
-        
+
         JOIN JOIN_THE_FORCE.empleado e ON (e.nro_empleado = a.nro_empleado) --Para conseguir nro_local
         JOIN JOIN_THE_FORCE.bicicleta_alquiler ba ON (ba.nro_serie_bici_alquiler = a.nro_serie_bici_alquiler) -- Para conseguir modelo de la bicicleta
         JOIN JOIN_THE_FORCE.modelo m ON (m.modelo = ba.modelo) -- Para conseguir categoria de la bicicleta
@@ -383,20 +388,24 @@ BEGIN
 END;
 GO
 
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_alquiler;
+
 -- BI_hecho_compra
 GO
 CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_compra
 AS
 BEGIN
     INSERT INTO JOIN_THE_FORCE.BI_hecho_compra
-        (id_tiempo, id_local, tipo_producto, cantidad, importe_total)
+        (id_tiempo, id_local, tipo_producto, cantidad, importe_total, cant_compras)
     SELECT bi_t.id_tiempo,
            bi_l.id_local,
            super_compra.tipo_producto,
            SUM(super_compra.cant_producto),
-           SUM(super_compra.subtotal_producto)
+           SUM(super_compra.subtotal_producto),
+           COUNT(DISTINCT super_compra.nro_compra)
     FROM (
         SELECT 
+        c.nro_compra,
         c.fecha_compra,
         e.nro_local,
         CASE WHEN pb.cod_producto IS NOT NULL THEN 'Bicicleta'
@@ -420,41 +429,131 @@ BEGIN
 END;
 GO
 
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_compra;
+
+-- BI_hecho_reparacion 
+GO
+CREATE OR ALTER PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_reparacion
+AS
+BEGIN
+    INSERT INTO JOIN_THE_FORCE.BI_hecho_reparacion (id_tiempo, id_local, desvio_total_dias, cant_reparaciones)
+    SELECT bi_t.id_tiempo, 
+           bi_l.id_local, 
+           SUM(DATEDIFF(MINUTE, r.fecha_entrega_estimada,r.fecha_entrega_real)) / 1440.0,
+           COUNT(DISTINCT r.nro_reparacion)
+    FROM JOIN_THE_FORCE.reparacion r
+    JOIN JOIN_THE_FORCE.empleado e ON e.nro_empleado = r.nro_empleado
+    -- Ahora joins con cosas del BI
+    JOIN JOIN_THE_FORCE.BI_local bi_l ON bi_l.nro_local = e.nro_local
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON bi_t.anio = YEAR(r.fecha_ingreso) AND bi_t.mes = MONTH(r.fecha_ingreso) AND bi_t.trimestre = DATEPART(QUARTER, r.fecha_ingreso)
+    WHERE r.fecha_entrega_real IS NOT NULL
+      AND r.fecha_entrega_estimada IS NOT NULL
+    GROUP BY bi_t.id_tiempo, bi_l.id_local;
+END;
+
+
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_reparacion
+
+-- BI_hecho_respuestos_usados
+GO
+CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_repuestos_usados
+AS
+BEGIN
+    INSERT INTO JOIN_THE_FORCE.BI_hecho_repuestos_usados(id_tiempo, categoria_repuesto, cantidad)
+    SELECT bi_t.id_tiempo,
+           rep.categoria_repuesto,
+           COUNT(DISTINCT r.nro_reparacion)
+    FROM JOIN_THE_FORCE.reparacion r
+        JOIN JOIN_THE_FORCE.detalle_reparacion dr ON (dr.nro_reparacion = r.nro_reparacion)
+        JOIN JOIN_THE_FORCE.repuesto rep ON (rep.cod_repuesto = dr.cod_repuesto)
+        -- Ahora joins con cosas del BI
+        JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (bi_t.anio = YEAR(r.fecha_ingreso) AND bi_t.mes = MONTH(r.fecha_ingreso))
+    GROUP BY bi_t.id_tiempo, rep.categoria_repuesto
+END;
+GO
+
+-- BI_hecho_ingreso_reparacion
+GO
+CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_ingreso_reparacion
+AS
+BEGIN
+    INSERT INTO JOIN_THE_FORCE.BI_hecho_ingreso_reparacion(id_tiempo, id_local, tipo_ingreso_reparacion, subtotal)
+    SELECT bi_t.id_tiempo,
+           bi_l.id_local,
+           bi_tr.tipo_ingreso_reparacion,
+           SUM(CASE bi_tr.tipo_ingreso_reparacion
+                WHEN 'Mano de Obra' THEN r.precio_mano_obra
+                WHEN 'Repuestos'    THEN r.precio_repuestos
+            END) AS ingreso_total       
+    FROM JOIN_THE_FORCE.reparacion r
+        JOIN JOIN_THE_FORCE.empleado e ON (e.nro_empleado = r.nro_empleado)
+        -- Ahora joins con cosas del BI
+        JOIN JOIN_THE_FORCE.BI_local bi_l ON (bi_l.nro_local = e.nro_local)
+        JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (bi_t.anio = YEAR(r.fecha_ingreso) AND bi_t.mes = MONTH(r.fecha_ingreso))
+        CROSS JOIN JOIN_THE_FORCE.BI_tipo_ingreso_reparacion bi_tr
+    GROUP BY bi_t.id_tiempo, bi_l.id_local, bi_tr.tipo_ingreso_reparacion
+END;
+GO
+
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_ingreso_reparacion
 
 /*============================================= VIEWS =============================================*/
 
--- Vista 1: Facturacion total mensual en ventas de cada local
+-- Vista 1: Facturacion total mensual en ventas de cada local.
+GO
 CREATE VIEW JOIN_THE_FORCE.V_facturacion_ventas_mensual_x_local
 AS
 SELECT bi_t.anio,
        bi_t.mes,
        bi_l.nro_local,
-       bi_l.nombre AS local
+       bi_l.nombre AS local,
        SUM(hv.subtotal) AS facturacion_total
 FROM JOIN_THE_FORCE.BI_hecho_venta hv 
     JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hv.id_tiempo = bi_t.id_tiempo)
     JOIN JOIN_THE_FORCE.BI_local bi_l ON (hv.id_local = bi_l.id_local)
 GROUP BY bi_t.anio, bi_t.mes, bi_l.nro_local, bi_l.nombre;
 
-
-/*
-Vista 2: Ticket promedio ($) de venta mensual por tipo de producto (bicicletas o
-accesorios) y rango etario del cliente.
-*/
+-- Vista 2: Ticket promedio ($) de venta mensual por tipo de producto (bicicletas o accesorios) y rango etario del cliente.
 GO
 CREATE VIEW JOIN_THE_FORCE.V_ticket_promedio_mensual_x_tipo_prod_x_rango_etario
 AS
-SELECT bi_t.anio
-       bi_t.mes
-       hv.tipo_producto
-       bi_re.descripcion AS rango_etario
+SELECT bi_t.anio,
+       bi_t.mes,
+       hv.tipo_producto,
+       bi_re.descripcion AS rango_etario,
        CAST(SUM(hv.subtotal) / NULLIF(SUM(hv.cant_ventas),0) AS DECIMAL(38,2)) AS ticket_promedio
 FROM JOIN_THE_FORCE.BI_hecho_venta hv
     JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hv.id_tiempo = bi_t.id_tiempo)
-    JOIN JOIN_THE_FORCE.BI_rango_etario bi_re ON (hv.id_rango_etario = bi_t.id_rango_etario)
+    JOIN JOIN_THE_FORCE.BI_rango_etario bi_re ON (hv.id_rango_etario = bi_re.id_rango_etario)
 GROUP BY bi_t.anio, bi_t.mes, hv.tipo_producto, bi_re.descripcion;
 
--- Vista 4: Promedio de cantidad de horas de alquiler de bicicletas, por local y mes
+-- Vista 3: Porcentaje de ventas trimestrales según tipo de producto (bicicletas o accesorios) por local.
+-- AHORA MISMO ES POR UNIDADES VENDIDAS --
+GO
+CREATE VIEW JOIN_THE_FORCE.V_porcentaje_ventas_x_trimestre_x_tipo_producto_x_local
+AS
+SELECT
+       bi_t.anio, 
+       bi_t.trimestre,
+       bi_l.nro_local,
+       bi_l.nombre,
+       tp.tipo_producto,
+       CAST(SUM(hv.unidades_vendidas) * 100.0
+            / NULLIF((SELECT SUM(hv2.unidades_vendidas)
+                      FROM JOIN_THE_FORCE.BI_hecho_venta hv2
+                          JOIN JOIN_THE_FORCE.BI_tiempo bi_t2 ON (bi_t2.id_tiempo = hv2.id_tiempo)
+                      WHERE bi_t2.anio = bi_t.anio
+                        AND bi_t2.trimestre = bi_t.trimestre
+                        AND hv2.id_local = hv.id_local), 0)
+            AS DECIMAL(38,2)) AS porcentaje
+
+FROM JOIN_THE_FORCE.BI_hecho_venta hv
+    JOIN JOIN_THE_FORCE.BI_local bi_l ON (hv.id_local = bi_l.id_local)
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hv.id_tiempo = bi_t.id_tiempo)
+    JOIN JOIN_THE_FORCE.BI_tipo_producto tp ON (hv.tipo_producto = tp.tipo_producto)
+GROUP BY bi_t.anio, bi_t.trimestre, bi_l.nro_local, bi_l.nombre, tp.tipo_producto, hv.id_local
+
+-- Vista 4: Promedio de cantidad de horas de alquiler de bicicletas, por local y mes.
 GO
 CREATE VIEW JOIN_THE_FORCE.V_promedio_cant_horas_alquiler (promedio, local, anio, mes)
 AS
@@ -467,7 +566,7 @@ FROM JOIN_THE_FORCE.BI_hecho_alquiler ha
     JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (ha.id_tiempo = bi_t.id_tiempo)
 GROUP BY bi_l.id_local, bi_l.nombre, bi_t.mes, bi_t.anio;
 
--- Vista 5: Top 5 categorías de bicicleta más alquilados, por año
+-- Vista 5: Top 5 categorías de bicicleta más alquilados, por año.
 GO
 CREATE VIEW JOIN_THE_FORCE.V_top_5_categorias_bicicletas (bicicleta, anio, cantidad_alquileres)
 AS
@@ -483,3 +582,96 @@ WHERE ha.categoria_bicicleta IN ( SELECT TOP 5 ha2.categoria_bicicleta
                                     GROUP BY ha2.categoria_bicicleta
                                     ORDER BY SUM(ha2.cant_alquileres) DESC, ha2.categoria_bicicleta)
 GROUP BY ha.categoria_bicicleta, bi_t.anio;
+
+-- Vista 6: Desvío promedio de reparaciones (en días), entre fecha de entrega estimada y real, por local y trimestre.
+GO
+CREATE VIEW JOIN_THE_FORCE.V_desvio_promedio_reparaciones (promedio_desvio_dias, local, anio, trimestre)
+AS
+SELECT SUM(hr.desvio_total_dias) / SUM(hr.cant_reparaciones), 
+       bi_l.nombre, 
+       bi_t.anio, 
+       bi_t.trimestre
+FROM JOIN_THE_FORCE.BI_hecho_reparacion hr
+    JOIN JOIN_THE_FORCE.BI_local bi_l ON hr.id_local = bi_l.id_local
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON hr.id_tiempo = bi_t.id_tiempo
+GROUP BY bi_l.id_local, bi_l.nombre, bi_t.anio, bi_t.trimestre;
+
+-- Vista 7: Ranking de categoría de repuestos más utilizados por mes.
+GO
+CREATE VIEW JOIN_THE_FORCE.V_ranking_categoria_repuesto
+AS
+SELECT bi_t.anio,
+       bi_t.mes,
+       hru.categoria_repuesto,
+       RANK() OVER (PARTITION BY bi_t.anio, bi_t.mes
+                    ORDER BY SUM(hru.cantidad) DESC) puesto
+FROM JOIN_THE_FORCE.BI_hecho_repuestos_usados hru
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hru.id_tiempo = bi_t.id_tiempo)
+GROUP BY bi_t.anio, bi_t.mes, hru.categoria_repuesto;
+
+-- Vista 8: Porcentaje de facturación de reparaciones según el tipo de ingreso de reparación (mano de obra o repuestos) por trimestre.
+GO
+CREATE VIEW JOIN_THE_FORCE.V_porcentaje_facturacion_reparaciones
+AS
+SELECT hir.tipo_ingreso_reparacion,
+       bi_t.anio,
+       bi_t.trimestre,
+       CAST(SUM(hir.subtotal) * 100.0
+            / NULLIF((SELECT SUM(hir2.subtotal)
+                      FROM JOIN_THE_FORCE.BI_hecho_ingreso_reparacion hir2
+                          JOIN JOIN_THE_FORCE.BI_tiempo bi_t2 ON (bi_t2.id_tiempo = hir2.id_tiempo)
+                      WHERE bi_t2.anio = bi_t.anio
+                        AND bi_t2.trimestre = bi_t.trimestre), 0)
+            AS DECIMAL(38,2)) AS porcentaje
+FROM JOIN_THE_FORCE.BI_hecho_ingreso_reparacion hir
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (bi_t.id_tiempo = hir.id_tiempo)
+GROUP BY hir.tipo_ingreso_reparacion, bi_t.anio, bi_t.trimestre;
+
+-- Vista 9: Promedio de unidades compradas según el tipo de producto  por trimestre.
+GO
+CREATE VIEW JOIN_THE_FORCE.V_promedio_unidades_compradas_x_tipo_producto_x_trimestre (anio, trimestre, tipo_productopromedio, tipo_producto)
+AS
+SELECT 
+    bi_t.anio,
+    bi_t.trimestre,
+    bi_tp.tipo_producto,
+    SUM(hc.cantidad) / SUM(hc.cant_compras) promedio
+FROM JOIN_THE_FORCE.BI_hecho_compra hc
+    JOIN JOIN_THE_FORCE.BI_tipo_producto bi_tp ON (hc.tipo_producto = bi_tp.tipo_producto)
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hc.id_tiempo = bi_t.id_tiempo)
+GROUP BY bi_tp.tipo_producto, bi_t.trimestre, bi_t.anio;
+
+-- Vista 10: Importe total de compras mensuales por local.
+GO
+CREATE VIEW JOIN_THE_FORCE.V_importe_total_compras_x_mes_x_local (anio, mes, nro_local, local, importe_total_local)
+AS
+SELECT
+    bi_t.anio,
+    bi_t.mes,
+    bi_l.nro_local,
+    bi_l.nombre as local,
+    SUM(hc.importe_total) AS importe_total_local
+FROM JOIN_THE_FORCE.BI_hecho_compra hc
+    JOIN JOIN_THE_FORCE.BI_local bi_l ON (hc.id_local = bi_l.id_local)
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hc.id_tiempo = bi_t.id_tiempo)
+GROUP BY bi_t.anio, bi_t.mes, bi_l.nro_local, bi_l.nombre
+GO
+
+-- Vista 11: Facturación mensual del negocio (ventas + alquileres + reparaciones) por local.
+GO
+CREATE VIEW JOIN_THE_FORCE.V_facturacion_mensual_total_x_local (anio, mes, nro_local, local, facturacion_total)
+AS
+SELECT 
+    bi_t.anio,
+    bi_t.mes,
+    bi_l.nro_local,
+    bi_l.nombre AS local,
+    SUM(COALESCE(hv.subtotal, 0) + COALESCE(ha.importe_total, 0) + COALESCE(hir.subtotal, 0)) AS facturacion_total
+FROM JOIN_THE_FORCE.BI_local bi_l
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON 1=1
+    JOIN JOIN_THE_FORCE.BI_hecho_ventas hv ON bi_l.id_local = hv.id_local AND bi_t.id_tiempo = hv.id_tiempo
+    JOIN JOIN_THE_FORCE.BI_hecho_alquileres ha ON bi_l.id_local = ha.id_local AND bi_t.id_tiempo = ha.id_tiempo
+    JOIN JOIN_THE_FORCE.BI_hecho_reparacion hir ON bi_l.id_local = hir.id_local AND bi_t.id_tiempo = hir.id_tiempo
+GROUP BY bi_t.anio, bi_t.mes, bi_l.nro_local, bi_l.nombre;
+GO
+
