@@ -127,7 +127,8 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_compra(
     id_local                         INT,
     tipo_producto                    VARCHAR(255),
     cantidad                         INT,
-    precio_unidad                    NUMERIC(38,2),
+    -- Cambio de " precio_unidad " a " importe_total "
+    importe_total                    NUMERIC(38,2),
 
     CONSTRAINT PK_BI_hecho_compra
     PRIMARY KEY (id_tiempo,id_local,tipo_producto),
@@ -381,6 +382,44 @@ BEGIN
     GROUP BY bi_t.id_tiempo, bi_l.id_local, m.categoria_bici
 END;
 GO
+
+-- BI_hecho_compra
+GO
+CREATE PROCEDURE JOIN_THE_FORCE.crear_BI_hecho_compra
+AS
+BEGIN
+    INSERT INTO JOIN_THE_FORCE.BI_hecho_compra
+        (id_tiempo, id_local, tipo_producto, cantidad, importe_total)
+    SELECT bi_t.id_tiempo,
+           bi_l.id_local,
+           super_compra.tipo_producto,
+           SUM(super_compra.cant_producto),
+           SUM(super_compra.subtotal_producto)
+    FROM (
+        SELECT 
+        c.fecha_compra,
+        e.nro_local,
+        CASE WHEN pb.cod_producto IS NOT NULL THEN 'Bicicleta'
+                        WHEN pa.cod_producto IS NOT NULL THEN 'Accesorio'
+                    END AS tipo_producto ,
+        dc.cant_producto,
+        dc.subtotal_producto
+        FROM
+        JOIN_THE_FORCE.compra c
+        JOIN JOIN_THE_FORCE.empleado e ON (e.nro_empleado = c.nro_empleado) --Para conseguir nro_local
+        JOIN JOIN_THE_FORCE.detalle_compra dc ON (c.nro_compra = dc.nro_compra)
+        JOIN JOIN_THE_FORCE.producto p ON (dc.cod_producto = p.cod_producto)
+        LEFT JOIN JOIN_THE_FORCE.producto_bicicleta pb ON pb.cod_producto = dc.cod_producto
+        LEFT JOIN JOIN_THE_FORCE.producto_accesorio pa ON pa.cod_producto = dc.cod_producto   
+    ) super_compra
+        -- Ahora joins con cosas del BI
+        JOIN JOIN_THE_FORCE.BI_local bi_l ON (bi_l.nro_local = super_compra.nro_local)
+        JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (bi_t.anio = YEAR(super_compra.fecha_compra) AND bi_t.mes = MONTH(super_compra.fecha_compra))
+    WHERE super_compra.tipo_producto IS NOT NULL
+    GROUP BY bi_t.id_tiempo, bi_l.id_local, tipo_producto ;
+END;
+GO
+
 
 /*============================================= VIEWS =============================================*/
 
