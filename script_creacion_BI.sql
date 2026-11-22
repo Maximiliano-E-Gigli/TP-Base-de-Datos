@@ -402,7 +402,7 @@ GROUP BY bi_t.anio, bi_t.mes, bi_l.nro_local, bi_l.nombre;
 Vista 2: Ticket promedio ($) de venta mensual por tipo de producto (bicicletas o
 accesorios) y rango etario del cliente.
 */
-
+GO
 CREATE VIEW JOIN_THE_FORCE.V_ticket_promedio_mensual_x_tipo_prod_x_rango_etario
 AS
 SELECT bi_t.anio
@@ -414,3 +414,33 @@ FROM JOIN_THE_FORCE.BI_hecho_venta hv
     JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (hv.id_tiempo = bi_t.id_tiempo)
     JOIN JOIN_THE_FORCE.BI_rango_etario bi_re ON (hv.id_rango_etario = bi_t.id_rango_etario)
 GROUP BY bi_t.anio, bi_t.mes, hv.tipo_producto, bi_re.descripcion;
+
+-- Vista 4: Promedio de cantidad de horas de alquiler de bicicletas, por local y mes
+GO
+CREATE VIEW JOIN_THE_FORCE.V_promedio_cant_horas_alquiler (promedio, local, anio, mes)
+AS
+SELECT SUM(ha.cant_horas) / SUM(ha.cant_alquileres) promedio, 
+       bi_l.nombre, 
+       bi_t.anio, 
+       bi_t.mes
+FROM JOIN_THE_FORCE.BI_hecho_alquiler ha
+    JOIN JOIN_THE_FORCE.BI_local bi_l ON (ha.id_local = bi_l.id_local)
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON (ha.id_tiempo = bi_t.id_tiempo)
+GROUP BY bi_l.id_local, bi_l.nombre, bi_t.mes, bi_t.anio;
+
+-- Vista 5: Top 5 categorías de bicicleta más alquilados, por año
+GO
+CREATE VIEW JOIN_THE_FORCE.V_top_5_categorias_bicicletas (bicicleta, anio, cantidad_alquileres)
+AS
+SELECT ha.categoria_bicicleta, 
+       bi_t.anio, 
+       SUM(ha.cant_alquileres)
+FROM JOIN_THE_FORCE.BI_hecho_alquiler ha
+    JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON ha.id_tiempo = bi_t.id_tiempo
+WHERE ha.categoria_bicicleta IN ( SELECT TOP 5 ha2.categoria_bicicleta
+                                    FROM JOIN_THE_FORCE.BI_hecho_alquiler ha2
+                                        JOIN JOIN_THE_FORCE.BI_tiempo bi_t2  ON ha2.id_tiempo = bi_t2.id_tiempo
+                                    WHERE bi_t2.anio = bi_t.anio
+                                    GROUP BY ha2.categoria_bicicleta
+                                    ORDER BY SUM(ha2.cant_alquileres) DESC, ha2.categoria_bicicleta)
+GROUP BY ha.categoria_bicicleta, bi_t.anio;
