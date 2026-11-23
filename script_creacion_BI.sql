@@ -666,9 +666,9 @@ SELECT
     SUM(COALESCE(hv.subtotal, 0) + COALESCE(ha.importe_total, 0) + COALESCE(hir.subtotal, 0)) AS facturacion_total
 FROM JOIN_THE_FORCE.BI_local bi_l
     JOIN JOIN_THE_FORCE.BI_tiempo bi_t ON 1=1
-    JOIN JOIN_THE_FORCE.BI_hecho_ventas hv ON bi_l.id_local = hv.id_local AND bi_t.id_tiempo = hv.id_tiempo
-    JOIN JOIN_THE_FORCE.BI_hecho_alquileres ha ON bi_l.id_local = ha.id_local AND bi_t.id_tiempo = ha.id_tiempo
-    JOIN JOIN_THE_FORCE.BI_hecho_reparacion hir ON bi_l.id_local = hir.id_local AND bi_t.id_tiempo = hir.id_tiempo
+    JOIN JOIN_THE_FORCE.BI_hecho_venta hv ON bi_l.id_local = hv.id_local AND bi_t.id_tiempo = hv.id_tiempo
+    JOIN JOIN_THE_FORCE.BI_hecho_alquiler ha ON bi_l.id_local = ha.id_local AND bi_t.id_tiempo = ha.id_tiempo
+    JOIN JOIN_THE_FORCE.BI_hecho_ingreso_reparacion hir ON bi_l.id_local = hir.id_local AND bi_t.id_tiempo = hir.id_tiempo
 GROUP BY bi_t.anio, bi_t.mes, bi_l.nro_local, bi_l.nombre;
 GO
 
