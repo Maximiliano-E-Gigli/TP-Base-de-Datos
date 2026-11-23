@@ -312,16 +312,15 @@ BEGIN
         bi_t.id_tiempo,
         bi_l.id_local,
         SUM(ventaConEdad.subtotal_producto),
-        SUM (ventaConEdad.unidades_vendidas),
+        SUM (ventaConEdad.cant_producto),
         COUNT(DISTINCT ventaConEdad.nro_venta)
-        
     FROM (
         -- Subconsulta para obtener las ventas con la edad del cliente
         SELECT ventaSinEdad.nro_venta,
                ventaSinEdad.fecha_hora,
                ventaSinEdad.nro_local,
                ventaSinEdad.subtotal_producto,
-               ventaSinEdad.unidades_vendidas,
+               ventaSinEdad.cant_producto,
                ventaSinEdad.tipo_producto,
                (SELECT bi_re.id_rango_etario
                 FROM JOIN_THE_FORCE.BI_rango_etario bi_re
@@ -449,8 +448,7 @@ BEGIN
     GROUP BY bi_t.id_tiempo, bi_l.id_local;
 END;
 
-
-EXECUTE JOIN_THE_FORCE.crear_BI_hecho_reparacion
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_reparacion;
 
 -- BI_hecho_respuestos_usados
 GO
@@ -469,6 +467,8 @@ BEGIN
     GROUP BY bi_t.id_tiempo, rep.categoria_repuesto
 END;
 GO
+
+EXECUTE JOIN_THE_FORCE.crear_BI_hecho_repuestos_usados;
 
 -- BI_hecho_ingreso_reparacion
 GO
