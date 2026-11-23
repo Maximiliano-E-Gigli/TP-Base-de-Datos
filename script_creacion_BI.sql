@@ -129,12 +129,11 @@ CREATE TABLE JOIN_THE_FORCE.BI_hecho_compra(
     id_local                         INT,
     tipo_producto                    VARCHAR(255),
     cantidad                         INT,
-    -- Cambio de " precio_unidad " a " importe_total "
     importe_total                    NUMERIC(38,2),
     cant_compras                     INT,
 
     CONSTRAINT PK_BI_hecho_compra
-    PRIMARY KEY (id_tiempo,id_local,tipo_producto),
+        PRIMARY KEY (id_tiempo,id_local,tipo_producto),
                         
     CONSTRAINT FK_BI_hecho_compra_id_tiempo
         FOREIGN KEY (id_tiempo)
@@ -242,7 +241,6 @@ BEGIN
     INSERT INTO JOIN_THE_FORCE.BI_rango_etario(descripcion, edad_min, edad_max)
     VALUES ('Entre 35 y 50 años inclusive', 36, 50);
 
-    -- Revisar si el valor de edad_max deberia ser NULL o un numero arbitrariamente grande como 200
     INSERT INTO JOIN_THE_FORCE.BI_rango_etario(descripcion, edad_min, edad_max)
     VALUES ('Mayores de 50 años', 51, 1000);
 END;
@@ -528,7 +526,6 @@ FROM JOIN_THE_FORCE.BI_hecho_venta hv
 GROUP BY bi_t.anio, bi_t.mes, hv.tipo_producto, bi_re.descripcion;
 
 -- Vista 3: Porcentaje de ventas trimestrales según tipo de producto (bicicletas o accesorios) por local.
--- AHORA MISMO ES POR UNIDADES VENDIDAS --
 GO
 CREATE VIEW JOIN_THE_FORCE.V_porcentaje_ventas_x_trimestre_x_tipo_producto_x_local
 AS
