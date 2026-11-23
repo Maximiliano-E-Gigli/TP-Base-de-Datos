@@ -447,6 +447,7 @@ BEGIN
       AND r.fecha_entrega_estimada IS NOT NULL
     GROUP BY bi_t.id_tiempo, bi_l.id_local;
 END;
+GO
 
 EXECUTE JOIN_THE_FORCE.crear_BI_hecho_reparacion;
 
